@@ -1,0 +1,54 @@
+---
+title: "Overview of Project"
+author: "Mark Gallacher"
+format: revealjs
+editor: source
+---
+
+# The Problem
+
+## Multi-class Classification
+
+-   Determine subtype of hypertensions
+
+-   Using microRNA Data (*abundance?*)
+
+-   **Imbalanced** Dataset
+
+-   Explore and evaluated varies metrics
+
+# The Initial Approach
+
+## Training Wide Range of Models
+
+-   Explore various types of models
+
+-   Have multiple models for each *type* of model
+
+-   Multiple models across the hyper-parametre space
+
+    - Need some constant to compare models across metrics
+
+## Evaluating the Models
+
+-   Evaluate all models with a lot of metrics
+
+    - consider *micro-* and *macro-* averaging
+
+-   Use k-fold cross-validation to get all *test* metrics
+
+-   Visualise basic comparisons/correlations between all the metric
+
+# Technical Considerations
+
+## Technical Considerations
+
+-   Python vs R
+
+    -   Python has more metrics available
+
+-   Access to Server(s)
+
+-   Limitations of Data
+
+    -   More legal/ privacy limits
