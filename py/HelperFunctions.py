@@ -1,4 +1,5 @@
-
+from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score
+import numpy as np
 
 def expand_metrics(metrics:list) -> dict[str]:
 
@@ -19,6 +20,10 @@ def expand_metrics(metrics:list) -> dict[str]:
             output[metric] = metric
         
         else:
+
+            if metric == "precision":
+                prec_macro = make_scorer(precision, average = "macro", zero_division = np.nan)
+
 
             expanded_metrics = [metric + "_" + suffix for suffix in metrics_suffix]
 

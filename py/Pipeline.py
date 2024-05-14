@@ -39,8 +39,9 @@ class Pipeline():
         """ REGEX for the metric name out from GridSearchCV.cv_result_
         Example Converts:
             - "split0_test_f1_micro" --> "f1_micro"
+            - "test_f1_macro" --> "f1_macro"
         """
-        search = re.search("(split[0-9]+_test_)(.*)", name)
+        search = re.search("(test_)(.*)", name)
 
         if search is not None:
             return search.group(2)
@@ -64,8 +65,9 @@ class Pipeline():
             - "metric" : [model1, model2, model3, ...]
             - for all metrics supplied
         """
+        # print(results)
         for key in results.keys():
-            if key.startswith("split"):
+            if key.startswith("split") | key.startswith("test"):
                     
                 ## get the values then tidy the name of the metric
                 metric_name = self.tidy_metric_name(key)
@@ -87,7 +89,7 @@ class Pipeline():
 
         This has a side effect of updating the values inside metric_dict["id"]
         """
-        gridsearch = self.model_class.cross_validate(
+        _cv = self.model_class.cross_validate(
                         X = X, 
                         y = y, 
                         metrics = self.metric_spec
@@ -96,8 +98,13 @@ class Pipeline():
         ## Update the Metric Dictionary
         self.metric_dict["id"] = self.model_class.generate_ids()
 
+        ## check if we preformed gridsearch or simple cross_validation
+        if self.model_class.trained_params:
+            
+            return _cv.cv_results_
 
-        return gridsearch.cv_results_
+        else:
+            return _cv
 
     def generate_metric_dataframe(self, X, y) -> pd.DataFrame:
         """ Generates the Pandas.DataFrame after running the GridSearchCV. 
@@ -106,6 +113,8 @@ class Pipeline():
         _results = self.run_gridsearch(X, y)
 
         self.parse_cv_results(_results)
+
+        # print(self.metric_dict)
 
         df = pd.DataFrame(self.metric_dict)
 
@@ -119,14 +128,18 @@ class Pipeline():
         i.e.
         - ~/project/data/LogisticRegression.csv
         """
-        
-        df.to_csv(f"{folder}/{self.model_name}.csv", index = False)
+        if folder.endswith("/"):
+            folder = folder.rstrip("/")
 
 
+        try: 
+            df.to_csv(f"{folder}/{self.model_name}.csv", index = False)
 
-        
+        except Exception as e:
 
-
+            print(f"File was not found - please check the path: {folder}")
+            print(f"Model - {self.model_name} - created error - {e}")
+            raise SystemError(1)
 
 
 

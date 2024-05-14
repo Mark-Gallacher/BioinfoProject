@@ -1,5 +1,6 @@
 from sklearn.base import is_classifier 
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_validate
 
 ## A class for the hyperparametres of a model, which is basically a dictionary
 ## this allows it to integrate with the sci-kit API down the line but allows 
@@ -30,17 +31,31 @@ class Model():
         self.trained_params = {}
         self.folds = folds
 
-    def cross_validate(self, X, y, metrics : dict):
-        gridsearch = GridSearchCV(
+    def cross_validate(self, X, y, metrics : dict) -> dict:
+
+        ## this is true if the dictionary is not empty
+        if self.params_grid.params:
+
+            cv = GridSearchCV(
             estimator = self.model,
             param_grid = self.params_grid.params,
             cv = self.folds,
             scoring = metrics, 
             refit = False)
 
-        cv_ = gridsearch.fit(X, y)
+            cv_ = cv.fit(X, y)
+        
+            self.trained_params = cv_.cv_results_["params"]
 
-        self.trained_params = cv_.cv_results_["params"]
+        ## if the params dictionary is empy - no need for GridSearch
+        else:
+            
+            cv_ = cross_validate(
+                    estimator = self.model, 
+                    X = X, 
+                    y = y, 
+                    cv = self.folds, 
+                    scoring = metrics)
 
         return cv_
 
@@ -50,13 +65,21 @@ class Model():
         are 1-based indices. This allows us to connect the params to the metrics.
         """
 
-        num_models = len(self.trained_params)
-
         model_id = []
-        for fold in range(1, self.folds + 1):
-            for model in range(1, num_models + 1):
 
-                model_id.append(self.code + "-" + str(model) + "-" + str(fold))
+        ## if we didn't do grid search - we only need to do fold cv.
+        if not self.trained_params:
+
+            for fold in range(1, self.folds + 1):
+
+                model_id.append(self.code + "-" + "1" + "-" + str(fold))
+
+        else:
+            num_models = len(self.trained_params)
+            for fold in range(1, self.folds + 1):
+                for model in range(1, num_models + 1):
+
+                    model_id.append(self.code + "-" + str(model) + "-" + str(fold))
 
         return model_id
 
