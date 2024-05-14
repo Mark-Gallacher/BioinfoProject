@@ -1,4 +1,3 @@
-from collections.abc import KeysView
 from Model import Hyperparametres, Model
 from HelperFunctions import parse_cv_results, tidy_metric_name, merge_metric
 
