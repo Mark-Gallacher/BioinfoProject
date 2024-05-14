@@ -22,11 +22,15 @@ class Pipeline():
     def init_metric_dict(self) -> dict:
         """Initialised the metric_dict by injecting the model name and all the ids (contained in a list.)
         """
-        model_ids = self.model_class.generate_ids()
+        if len(self.model_class.trained_params) < 1:
+            models_id = []
+        
+        else:
+            models_id = self.model_class.generate_ids()
 
         metric_dict = {
                 "model_type" : self.model_name,
-                "id" : model_ids
+                "id" : models_id
                 }
 
         return metric_dict
@@ -80,13 +84,19 @@ class Pipeline():
     def run_gridsearch(self, X, y) -> dict:
         """Runs the GridSearchCV defined in the Model class.
         Returns the dictionary of cv_results_
+
+        This has a side effect of updating the values inside metric_dict["id"]
         """
         gridsearch = self.model_class.cross_validate(
                         X = X, 
                         y = y, 
                         metrics = self.metric_spec
                         )
-        
+
+        ## Update the Metric Dictionary
+        self.metric_dict["id"] = self.model_class.generate_ids()
+
+
         return gridsearch.cv_results_
 
     def generate_metric_dataframe(self, X, y) -> pd.DataFrame:

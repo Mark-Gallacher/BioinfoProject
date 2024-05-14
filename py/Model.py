@@ -27,7 +27,7 @@ class Model():
         self.code = code.upper()
         self.model = model(**kwargs)
         self.params_grid = params 
-        self.trained_params = None 
+        self.trained_params = {}
         self.folds = folds
 
     def cross_validate(self, X, y, metrics : dict):

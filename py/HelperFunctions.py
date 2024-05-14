@@ -1,48 +1,36 @@
-import re
 
 
-def tidy_metric_name(name:str) -> str | None:
-    """ REGEX for the metric name out from GridSearchCV.cv_result_
-    Example Converts:
-        - "split0_test_f1_micro" --> "f1_micro"
-    """
-    search = re.search("(split[0-9]+_test_)(.*)", name)
+def expand_metrics(metrics:list) -> dict[str]:
 
-    if search is not None:
-        return search.group(2)
-    
-    return None
+    if not isinstance(metrics, list):
+        raise ValueError("metrics should be a list of strings")
 
-def merge_metric(metric_dict:dict, name:str, values:list) -> dict:
-    """ Merges multiple metrics into one dictionary whilst appending if the metric is already present.
-    """
-    if name in metric_dict.keys():
-        metric_dict[name] += values
+    if len(metrics) < 1:
+        raise ValueError("metrics should be a list of string")
 
-    else:
-        metric_dict[name] = values
+    expandable_metrics = ["f1", "precision", "recall"]
+    metrics_suffix = ["macro", "micro", "weighted"]
 
-    return metric_dict
+    output = {}
 
-def parse_cv_results(results:dict, metric_output:dict) -> dict:
-    """ Extracts the Metrics from the cv_results_ dictionary. 
-    Transposes the lists to output the form 
-        - "metric" : [model1, model2, model3, ...]
-        - for all metrics supplied
-    """
-    for key in results.keys():
-        if key.startswith("split"):
-                
-            ## get the values then tidy the name of the metric
-            values = results[key].tolist()
-            metric_name = tidy_metric_name(key)
+    for metric in metrics:
+        if metric not in expandable_metrics:
 
-            if metric_name is None:
-                raise ValueError("No Metrics were found in this Results Dictionary!!")
+            output[metric] = metric
+        
+        else:
 
-            ## generate a dictionary containing all the metrics
-            metric_dict = merge_metric(metric_output, metric_name, values)
+            expanded_metrics = [metric + "_" + suffix for suffix in metrics_suffix]
 
-    return metric_dict
+            for new_metric in expanded_metrics:
+                output[new_metric] = new_metric
 
+    return output
 
+# print(expand_metrics(["hello"])) 
+# print(expand_metrics(["f1"])) 
+
+assert expand_metrics(["hello"]) == {"hello" : "hello"}
+assert expand_metrics(["f1"]) == {"f1_micro" : "f1_micro", 
+                                "f1_macro" : "f1_macro", 
+                                "f1_weighted" : "f1_weighted"}
