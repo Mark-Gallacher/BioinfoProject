@@ -1,19 +1,67 @@
 from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score
 import numpy as np
 
+def generate_scorers(metric:str) -> dict | None:
+
+    metric_scorers = {"f1" : f1_score,
+                      "fbeta": fbeta_score,
+                      "precision": precision_score, 
+                      "recall" : recall_score}
+
+    metrics_suffix = ["macro", "micro", "weighted"]
+
+    ## ensure the metric string is in our dictionary
+    if metric not in metric_scorers.keys():
+        return None
+    
+    ## fbeta requires additional arguments - handle separately
+    if metric == "fbeta":
+        betas = [2, 3, 4]
+
+        ## generate a dictionary of all the variations of the scoring functions
+        scorer = {metric + "_" + str(beta) + "_" + average : 
+                  make_scorer(
+                      metric_scorers[metric],
+                      beta = beta,
+                      average = average, 
+                      zero_division = np.nan, 
+                      response_method = "predict",
+                      labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL']
+                      )
+
+                  for average in metrics_suffix
+                  for beta in betas}
+
+        return scorer
+
+    ## generate a dictionary of all the variations of the scoring functions
+    scorer = {metric + "_" + average : make_scorer(
+                                       metric_scorers[metric], 
+                                       # response_method = "predict",
+                                       average = average, 
+                                       zero_division = np.nan,
+                                       labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL'], 
+                                       pos_label = None
+                                       )
+              for average in metrics_suffix}
+
+    return scorer
+
+# print(generate_scorers("fbeta"))
+
+
 def expand_metrics(metrics:list) -> dict[str]:
 
+    ## check the metrics supplied are a list and have more than one element in them
     if not isinstance(metrics, list):
         raise ValueError("metrics should be a list of strings")
 
     if len(metrics) < 1:
-        raise ValueError("metrics should be a list of string")
+        raise ValueError("metrics should not be an empty list")
 
-    expandable_metrics = ["f1", "precision", "recall"]
-    metrics_suffix = ["macro", "micro", "weighted"]
+    expandable_metrics = ["f1", "precision", "recall", "fbeta"]
 
     output = {}
-
     for metric in metrics:
         if metric not in expandable_metrics:
 
@@ -21,21 +69,19 @@ def expand_metrics(metrics:list) -> dict[str]:
         
         else:
 
-            if metric == "precision":
-                prec_macro = make_scorer(precision, average = "macro", zero_division = np.nan)
+            ## generate all the scoring functions for each metric
+            expanded_metrics = generate_scorers(metric)
 
+            if expanded_metrics is None:
+                continue
 
-            expanded_metrics = [metric + "_" + suffix for suffix in metrics_suffix]
-
-            for new_metric in expanded_metrics:
-                output[new_metric] = new_metric
+            ## then add to the dictionary
+            for new_metric in expanded_metrics.keys():
+                output[new_metric] = expanded_metrics[new_metric]
 
     return output
 
-# print(expand_metrics(["hello"])) 
-# print(expand_metrics(["f1"])) 
-
-assert expand_metrics(["hello"]) == {"hello" : "hello"}
-assert expand_metrics(["f1"]) == {"f1_micro" : "f1_micro", 
-                                "f1_macro" : "f1_macro", 
-                                "f1_weighted" : "f1_weighted"}
+# assert expand_metrics(["hello"]) == {"hello" : "hello"}
+# assert expand_metrics(["f1"]) == {"f1_micro" : "f1_micro", 
+                                # "f1_macro" : "f1_macro", 
+                                # "f1_weighted" : "f1_weighted"}
