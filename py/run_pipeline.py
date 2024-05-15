@@ -10,6 +10,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import StandardScaler
 
 from HelperFunctions import expand_metrics
@@ -43,23 +44,24 @@ metrics = expand_metrics(base_metrics)
 #### Other Global Params ####
 folds = 10
 metrics_output_folder = "../data/metrics/"
+params_output_folder = "../data/params/"
 threads = -2
 
 #### LogisticRegression ####
-log_reg_params = Hyperparametres(params = [ 
+log_reg_params = Hyperparametres(
+                model_name = "LogisticRegression", 
+                model_code = "LG",
+                params = [ 
                 {"penalty" : [ None ]},
                 {"penalty" : ["l1", "l2"], 
-                "C" : [1, 2, 4, 8, 16]
-                 },
+                "C" : [1, 2, 4, 8, 16]},
                 {"penalty" : ["elasticnet"], 
                  "C" : [1, 2, 4, 8, 16], 
                  "l1_ratio" : [.2, .4, .6, .8]}
-                                           ])
+                ])
 
 ## Define the Type of Model with the Hyperparametres
-log_reg_model = Model(name = "LogisticRegression",
-                code = "LG",
-                model = LogisticRegression,
+log_reg_model = Model(model = LogisticRegression,
                 params = log_reg_params,
                 solver = "saga",
                 max_iter = 5000, 
@@ -67,47 +69,43 @@ log_reg_model = Model(name = "LogisticRegression",
                 folds = folds)
 
 #### K-Nearest Neighbours ####
-knn_params = Hyperparametres(params = {
-            "n_neighbors" : [3, 5, 8, 12, 20, 50], 
-            "weights" : ["uniform", "distance"]})
+knn_params = Hyperparametres(
+            model_name = "KNearestNeighbours", 
+            model_code = "KNN", 
+            params = {
+            "n_neighbors" : [2, 4, 8, 16, 32, 64], 
+            "weights" : ["uniform", "distance"]
+            })
 
-knn_model = Model(name = "KNearestNeighbours", 
-                  code = "KNN", 
-                  model = KNeighborsClassifier, 
+knn_model = Model(model = KNeighborsClassifier, 
                   params = knn_params,
                   n_jobs = threads,
                   folds = folds)
 
 #### Naive Bayes ####
-gnb_params = Hyperparametres(params = {})
-# cnb_params = Hyperparametres(params = {
-            # "alpha" : [0.25, .5, 1, 2]}
-                             # )
+gnb_params = Hyperparametres(params = {}, 
+                             model_name = "GaussianNaiveBayes", 
+                             model_code = "GNB")
 
 
-gnb_model = Model(name = "GaussianNaiveBayes", 
-                  code = "GNB", 
-                  model = GaussianNB, 
+gnb_model = Model(model = GaussianNB, 
                   params = gnb_params, 
                   n_jobs = threads,
                   folds = folds)
 
-# cnb_model = Model(name = "ComplementNaiveBayes", 
-                  # code = "CNB", 
-                  # model = ComplementNB, 
-                  # params = cnb_params, 
-                  # folds = folds)
-
-
 
 #### Collection of Models
 
-collection = [log_reg_model, knn_model, gnb_model]
+model_collection = [log_reg_model, knn_model, gnb_model]
+param_collection = [log_reg_params, knn_params, gnb_params]
 
 #### Run the Pipeline ####
 
-for model in collection:
+for model in param_collection:
 
+    model.save_as_csv(folder = params_output_folder)
+
+for model in model_collection:
 
     pipeline = Pipeline(model, metrics)
 
