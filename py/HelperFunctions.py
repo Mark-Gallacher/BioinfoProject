@@ -24,8 +24,8 @@ def generate_scorers(metric:str) -> dict | None:
                       metric_scorers[metric],
                       beta = beta,
                       average = average, 
-                      zero_division = np.nan, 
-                      response_method = "predict",
+                      zero_division = 0, 
+                      # response_method = "predict",
                       labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL']
                       )
 
@@ -39,7 +39,7 @@ def generate_scorers(metric:str) -> dict | None:
                                        metric_scorers[metric], 
                                        # response_method = "predict",
                                        average = average, 
-                                       zero_division = np.nan,
+                                       zero_division = 0,
                                        labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL'], 
                                        pos_label = None
                                        )
