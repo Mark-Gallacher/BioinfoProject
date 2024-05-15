@@ -8,6 +8,7 @@ pandas = "*"
 numpy = "*"
 scikit-learn = "*"
 pynvim = "*"
+joblib = "*"
 
 [dev-packages]
 
