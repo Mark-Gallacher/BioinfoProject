@@ -1,14 +1,91 @@
 from sklearn.base import is_classifier 
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_validate
+from sklearn.model_selection import ParameterGrid
+
+import pandas as pd
 
 ## A class for the hyperparametres of a model, which is basically a dictionary
 ## this allows it to integrate with the sci-kit API down the line but allows 
 ## us to keep track of what parameters we could change
 class Hyperparametres():
 
-    def __init__(self, params: dict | list[dict]) -> None:
+    def __init__(self, model_name:str, model_code:str, params: dict | list[dict]) -> None:
+        
+        if len(model_name) < 3 :
+            raise ValueError(f"Please Supply a more useful name than {model_name}, for example - LogisticRegression")
+
+        if len(model_code) < 2 :
+            raise ValueError(f"Please supply a more useful code than {model_code}, for example - LG for Logistic Regression")
+
         self.params = params
+        self.model_code = model_code.upper()
+        self.model_name = model_name 
+        self.grid = self.create_grid()
+        self.param_ids = self.create_ids()
+
+    def create_grid(self) -> list:
+        grid = ParameterGrid(self.params)
+
+        return list(grid)
+
+    def create_ids(self) -> list[str]:
+
+        if self.grid is None:
+            raise AttributeError(f"Expected a dictionary, but got None instead, from grid attribute, received: {self.grid}")
+        
+        if len(self.grid) < 1:
+            raise AttributeError("Expected a populated dictionary, but received an empty dictionary instead")
+            
+        num_params = range(1, len(self.grid) + 1)
+
+        return [self.model_code + "-" + str(num) for num in num_params]
+    
+
+    def parse_param_dicts(self) -> dict:
+
+        if self.grid is None:
+            raise AttributeError("Expected a dictionary, but got None instead, from grid attribute")
+        
+        if self.param_ids is None:
+            raise AttributeError("Expected a dictionary, but got None instead, from grid attribute")
+        
+        params_with_id = list(zip(self.param_ids, self.grid))
+
+        parsed_dict = {"model_id" : [], 
+                       "param" : [], 
+                       "value" : []}
+
+        for model in params_with_id:
+            for param, value in model[1].items():
+                parsed_dict["model_id"].append(model[0])
+                parsed_dict["param"].append(param)
+                parsed_dict["value"].append(value)
+
+        return parsed_dict
+                
+    def generate_params_dataframe(self) -> pd.DataFrame:
+
+        param_dict = self.parse_param_dicts()
+
+        return pd.DataFrame(param_dict)
+
+
+    def save_as_csv(self, folder:str) -> None:
+
+        df = self.generate_params_dataframe()
+
+        if folder.endswith("/"):
+            folder = folder.rstrip("/")
+
+        try: 
+            df.to_csv(f"{folder}/{self.model_name}.csv", index = False)
+
+        except Exception as e:
+
+            print(f"File was not found - please check the path: {folder}")
+            print(f"Model - {self.model_name} - created error - {e}")
+            raise SystemError(1)
 
 
 ## A class for the model, which contains the parameters to train the model across
@@ -16,16 +93,13 @@ class Hyperparametres():
 ## and allow for more complex validations or conditions. 
 class Model():
     
-    def __init__(self, name:str, code:str, model, params:Hyperparametres, folds:int = 2, n_jobs:int = 1,  **kwargs) -> None:
+    def __init__(self, model, params:Hyperparametres, folds:int = 2, n_jobs:int = 1,  **kwargs) -> None:
         
         if not is_classifier(model):
             raise ValueError("model should be a classifer from sci-kit learn!")
 
-        if len(name) < 1:
-            raise ValueError("name should have a string with a length greater than 1!")
-
-        self.model_name = name 
-        self.code = code.upper()
+        self.model_name = params.model_name 
+        self.code = params.model_code.upper()
         self.model = model(**kwargs)
         self.params_grid = params 
         self.trained_params = {}
@@ -33,12 +107,6 @@ class Model():
         self.cores = n_jobs
 
     def cross_validate(self, X, y, metrics : dict) -> dict:
-
-
-        # m = self.model.fit(X, y)
-        # p = m.predict(X)
-        # print(p)
-
 
         ## this is true if the dictionary is not empty
         if self.params_grid.params:
