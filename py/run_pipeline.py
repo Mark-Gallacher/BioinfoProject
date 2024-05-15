@@ -36,19 +36,25 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 # print(train_labels.value_counts(), train_labels.value_counts()/ len(train_labels))
 
 #### Metrics ####
-base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1"]
+base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta"]
 
 metrics = expand_metrics(base_metrics)
 
 #### Other Global Params ####
 folds = 10
 metrics_output_folder = "../data/metrics/"
+threads = -2
 
 #### LogisticRegression ####
-log_reg_params = Hyperparametres(params = {
-                "penalty" : ["l1", "l2", None], 
-                "C" : [.5, 1, 3, 9]
-                })
+log_reg_params = Hyperparametres(params = [ 
+                {"penalty" : [ None ]},
+                {"penalty" : ["l1", "l2"], 
+                "C" : [1, 2, 4, 8, 16]
+                 },
+                {"penalty" : ["elasticnet"], 
+                 "C" : [1, 2, 4, 8, 16], 
+                 "l1_ratio" : [.2, .4, .6, .8]}
+                                           ])
 
 ## Define the Type of Model with the Hyperparametres
 log_reg_model = Model(name = "LogisticRegression",
@@ -57,17 +63,19 @@ log_reg_model = Model(name = "LogisticRegression",
                 params = log_reg_params,
                 solver = "saga",
                 max_iter = 5000, 
+                n_jobs = threads,
                 folds = folds)
 
 #### K-Nearest Neighbours ####
 knn_params = Hyperparametres(params = {
-            "n_neighbors" : [3, 5, 8, 12, 20], 
+            "n_neighbors" : [3, 5, 8, 12, 20, 50], 
             "weights" : ["uniform", "distance"]})
 
 knn_model = Model(name = "KNearestNeighbours", 
                   code = "KNN", 
                   model = KNeighborsClassifier, 
                   params = knn_params,
+                  n_jobs = threads,
                   folds = folds)
 
 #### Naive Bayes ####
@@ -81,6 +89,7 @@ gnb_model = Model(name = "GaussianNaiveBayes",
                   code = "GNB", 
                   model = GaussianNB, 
                   params = gnb_params, 
+                  n_jobs = threads,
                   folds = folds)
 
 # cnb_model = Model(name = "ComplementNaiveBayes", 

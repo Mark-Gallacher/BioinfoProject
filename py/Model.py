@@ -16,7 +16,7 @@ class Hyperparametres():
 ## and allow for more complex validations or conditions. 
 class Model():
     
-    def __init__(self, name:str, code:str, model, params:Hyperparametres, folds : int = 1, **kwargs) -> None:
+    def __init__(self, name:str, code:str, model, params:Hyperparametres, folds:int = 2, n_jobs:int = 1,  **kwargs) -> None:
         
         if not is_classifier(model):
             raise ValueError("model should be a classifer from sci-kit learn!")
@@ -30,8 +30,15 @@ class Model():
         self.params_grid = params 
         self.trained_params = {}
         self.folds = folds
+        self.cores = n_jobs
 
     def cross_validate(self, X, y, metrics : dict) -> dict:
+
+
+        # m = self.model.fit(X, y)
+        # p = m.predict(X)
+        # print(p)
+
 
         ## this is true if the dictionary is not empty
         if self.params_grid.params:
@@ -41,7 +48,8 @@ class Model():
             param_grid = self.params_grid.params,
             cv = self.folds,
             scoring = metrics, 
-            refit = False)
+            refit = False, 
+            n_jobs = self.cores)
 
             cv_ = cv.fit(X, y)
         
@@ -55,7 +63,8 @@ class Model():
                     X = X, 
                     y = y, 
                     cv = self.folds, 
-                    scoring = metrics)
+                    scoring = metrics, 
+                    n_jobs = self.cores)
 
         return cv_
 
