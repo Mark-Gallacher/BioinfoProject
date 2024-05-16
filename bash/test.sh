@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --account=2466057g 
+#SBATCH --account=none
 #SBATCH --job-name=py-test      # create a short name for your job
 #SBATCH --partition="nodes"     # we are using CPU nodes - don't change this
 #SBATCH --time=0-01:00:00       # how long do we expect this job to run?
@@ -34,9 +34,7 @@ then
 fi
 
 
-
-python3 "${py_script_home}/test.py"
-
+python3 "${py_script_home}/mars_test.py"
 
 
 ## close the venv
@@ -44,5 +42,4 @@ if [[ "${VIRTUAL_ENV}" != "" ]]
 then
 
     deactivate
-
 fi
