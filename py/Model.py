@@ -25,9 +25,18 @@ class Hyperparametres():
         self.param_ids = self.create_ids()
 
     def create_grid(self) -> list:
-        grid = ParameterGrid(self.params)
 
-        return list(grid)
+        ## if the dictionary has content
+        if self.params:
+            grid = ParameterGrid(self.params)
+            grid = list(grid)
+
+        ## if the dictionary is empty
+        else:
+
+            grid = [{"NA" : "NA"}]
+
+        return grid
 
     def create_ids(self) -> list[str]:
 
