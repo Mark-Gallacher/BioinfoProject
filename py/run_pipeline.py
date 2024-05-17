@@ -73,7 +73,7 @@ knn_params = Hyperparametres(
             model_name = "KNearestNeighbours", 
             model_code = "KNN", 
             params = {
-            "n_neighbors" : [2, 4, 8, 16, 32, 64], 
+            "n_neighbors" : [2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40], 
             "weights" : ["uniform", "distance"]
             })
 
