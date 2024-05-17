@@ -44,11 +44,168 @@ params <- raw_params |>
 
 params
 
+
 ```
 
 
 ```{r}
-info_cols <- c("model_type", "id", "model_code", "model_id")
+verify_code_in_tibble <- function(params, code){
+  
+  .all_codes <- params |> 
+    pluck("model_code") |> 
+    unique()
+  
+  if(!is.element(code, .all_codes)) {
+    message = stringr::str_c(
+      "Please ensure the `code` is in the tibble!\n - Received '", code,
+      "' but expected an element in '", paste0(.all_codes, collapse = "', '"), "'"
+      )
+    
+    stop(message)
+  }else{
+    
+    return(TRUE)
+    
+  }
+}
+
+verify_is_tibble <- function(arg_value, arg_name){
+  
+  if (missing(arg_value) || !is.tibble(arg_value)){ 
+    stop(paste0("Please ensure you supplied a tibble for `", arg_name, "`!"))
+  }else{
+    
+    return(TRUE)
+    
+  }
+}
+
+verify_is_string <- function(arg_value, arg_name){
+   
+  if (missing(arg_value) || !is.character(arg_value)){ 
+     stop(paste0("Please ensure you supplied a string for `", arg_name, "`!"))
+  }else{
+      
+    return(TRUE)
+    
+  }
+}
+
+extract_hyperparams <- function(params, code){
+  
+  # verify_is_tibble(params, "params")
+  # verify_is_string(code, "code")
+  # verify_code_in_tibble(params, code)
+    
+  .hyperparams <- params |> 
+    filter(model_code == code) |> 
+    pluck("param") |> 
+    unique()
+   
+  return(.hyperparams)
+
+}
+
+pivot_param_tibble <- function(params, code){
+  
+  # verify_is_tibble(params, "params")
+  # verify_is_string(code, "code")
+  # verify_code_in_tibble(code, params)
+  
+  .hyperparams <- extract_hyperparams(params, code)
+  
+  ## filter than pivot the params table
+  .pivot_params <- params |> 
+    filter(model_code == code) |> 
+    pivot_wider(
+      id_cols = c(model_code, model_id),
+      names_from = param, 
+      values_from = value)
+  
+  return(.pivot_params)
+}
+
+pivot_metrics_tibble <- function(metrics, code){
+  
+  ## this should probably not be static, but I dont see it changing. 
+  info_cols <- c("model_type", "id", "model_code", "model_id")
+  
+  # verify_is_tibble(metrics, "metrics")
+  # verify_is_string(code, "code")
+  # verify_code_in_tibble(code, params)
+  
+  .pivot_metrics <- metrics |> 
+    filter(model_code == code) |> 
+    pivot_longer(
+      cols = -any_of(info_cols),
+      names_to = "metric", 
+      values_to = "score")
+
+  return(.pivot_metrics)
+  
+}
+
+parse_metric_column <- function(metrics){
+  
+  # verify_is_tibble(metrics, "metrics")
+  
+  .parse_metrics <- metrics |>
+    mutate(
+      average_type = str_extract(metric, "[a-z]+$"),
+      metric = str_remove(metric, "beta_"),
+      metric_type = str_extract(metric, "^[a-z]+[0-9]*"), 
+      average_type = if_else(average_type == "accuracy", "NA", average_type)
+      )
+    
+  return(.parse_metrics)
+  
+}
+
+link_model_params <- function(metrics, params){
+  
+  # verify_is_tibble(metrics, "metrics")
+  # verify_is_tibble(params, "params")
+  
+  .linked_tibble <- inner_join(metrics, params, 
+                               by = c("model_id", "model_code"))
+
+  return (.linked_tibble)
+  
+}
+
+generate_model_tibble <- function(metrics, params, code){
+  
+  verify_is_tibble(metrics, "metrics")
+  verify_is_tibble(params, "params")
+  verify_is_string(code, "code")
+  verify_code_in_tibble(params, code)
+  
+  # extract_hyperparams(params, code)
+  
+  .params <- pivot_param_tibble(params = params, code = code)
+  
+  .model <- pivot_metrics_tibble(metrics = metrics, code = code) |> 
+    parse_metric_column() |> 
+    link_model_params(params = .params)
+  
+  return(.model)
+  
+}
+```
+
+
+```{r}
+extract_hyperparams(params, code = "KNN")
+```
+
+```{r}
+generate_model_tibble(metrics = metrics, params = params, code = "KNN")
+```
+
+
+```{r}
+
+
 
 ## extract the hyperparams
 hyperparams <- params |> 
@@ -72,7 +229,8 @@ knn_df <- metrics |>
   mutate(
     average_type = str_extract(metric, "[a-z]+$"),
     metric = str_remove(metric, "beta_"),
-    metric_type = str_extract(metric, "^[a-z]+[0-9]*")
+    metric_type = str_extract(metric, "^[a-z]+[0-9]*"), 
+    average_type = if_else(average_type == "accuracy", "NA", average_type)
          ) |> 
   inner_join(knn_params, by = c("model_id", "model_code"))
 
@@ -100,7 +258,7 @@ knn |>
              y = mean_score, 
              colour = metric_type, 
              group = metric_type))+
-  geom_jitter(alpha = .8, width = .05) +
+  geom_point(alpha = .8, size = 1) +
   # scale_x_log10() +
   geom_smooth(se = F) +
   facet_grid(~weights)
@@ -114,9 +272,9 @@ knn |>
              y = mean_score, 
              colour = average_type, 
              group = average_type))+
-  geom_jitter(alpha = .8, width = .05) +
+  geom_point(alpha = .8, size = 1) +
   geom_smooth(se = F) +
-  scale_x_log10() +
+  # scale_x_log10() +
   facet_grid(~weights)
 
 ```
