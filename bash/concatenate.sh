@@ -82,8 +82,6 @@ main() {
         local folder="${csv_dir}/${dir}"
         local out_file="${out_dir}/${dir}_merged.csv"        
 
-        echo "Testing dir : ${dir}"        
-
         ## check the folder with the csvs actually exists.
         is_dir $folder \
             && {
