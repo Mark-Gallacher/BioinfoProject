@@ -1,0 +1,123 @@
+---
+title: "Hyperparameter Tuning"
+author: '2466057'
+date: "2024-05-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(tidyverse)
+library(here)
+
+```
+
+```{r}
+
+raw_metrics <- read_csv(here("data/merged/metrics_merged.csv"))
+raw_params <- read_csv(here("data/merged/params_merged.csv"))
+
+```
+
+```{r}
+
+metrics <- raw_metrics |> 
+  mutate(
+    model_code = str_extract(id, "[A-Z]+"), 
+    model_id = str_extract(id, "[A-Z]+-[0-9]+")) |> 
+  relocate(any_of(c("model_code", "model_id")), .after = id)
+
+metrics
+
+```
+
+```{r}
+
+params <- raw_params |> 
+  mutate(
+    model_code = str_extract(model_id, "[A-Z]+")) |> 
+  relocate(any_of(c("model_code", "model_id")))
+
+params
+
+```
+
+
+```{r}
+info_cols <- c("model_type", "id", "model_code", "model_id")
+
+## extract the hyperparams
+hyperparams <- params |> 
+    filter(model_code == "KNN") |> 
+    pluck("param") |> 
+    unique()
+
+## filter than pivot the params table
+knn_params <- params |> 
+  filter(model_code == "KNN") |> 
+  pivot_wider(id_cols = c(model_code, model_id), 
+              names_from = param, 
+              values_from = value)
+
+## combine the metrics table - but filter the metrics table first. 
+knn_df <- metrics |> 
+  filter(model_code == "KNN") |> 
+  pivot_longer(cols = -any_of(info_cols), 
+               names_to = "metric", 
+               values_to = "score") |> 
+  mutate(
+    average_type = str_extract(metric, "[a-z]+$"),
+    metric = str_remove(metric, "beta_"),
+    metric_type = str_extract(metric, "^[a-z]+[0-9]*")
+         ) |> 
+  inner_join(knn_params, by = c("model_id", "model_code"))
+
+knn_df
+
+```
+
+```{r}
+
+knn <- knn_df |> 
+  summarise(.by = c(model_id, metric, metric_type, average_type), 
+            mean_score = mean(score, na.rm = T), 
+            sd_score = sd(score, na.rm = T)) |> 
+  inner_join(knn_params, by = "model_id")
+
+knn
+
+```
+
+
+```{r}
+
+knn |> 
+  ggplot(aes(x = as.numeric(n_neighbors), 
+             y = mean_score, 
+             colour = metric_type, 
+             group = metric_type))+
+  geom_jitter(alpha = .8, width = .05) +
+  # scale_x_log10() +
+  geom_smooth(se = F) +
+  facet_grid(~weights)
+
+```
+
+```{r}
+
+knn |> 
+  ggplot(aes(x = as.numeric(n_neighbors), 
+             y = mean_score, 
+             colour = average_type, 
+             group = average_type))+
+  geom_jitter(alpha = .8, width = .05) +
+  geom_smooth(se = F) +
+  scale_x_log10() +
+  facet_grid(~weights)
+
+```
+

@@ -1,0 +1,153 @@
+---
+title: "Exploratory Data Analysis"
+author: '2466057'
+date: "2024-05-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+```
+
+```{r}
+
+data <- read_csv(here::here("data/TidyData.csv"))
+metadata <- read_csv(here::here("data/MetaData.csv"))
+
+```
+
+```{r}
+
+long_data <- data |> 
+  pivot_longer(cols = !c(DiseaseSubtype, DiseaseSubtypeFull, PseudoID), names_to = "mRNA", values_to = "deltaCt")
+
+```
+
+```{r}
+data |> 
+  ggplot(aes(x = DiseaseSubtype, fill = DiseaseSubtypeFull))+
+  geom_histogram()
+```
+
+```{r}
+
+ long_data |> 
+  ggplot(aes(x = deltaCt, fill = DiseaseSubtypeFull))+
+  geom_histogram(alpha = .8, position="identity", show.legend = F)+
+  facet_grid(~DiseaseSubtypeFull)
+
+```
+
+```{r}
+
+ long_data |> 
+  ggplot(aes(x = DiseaseSubtypeFull, y = deltaCt, fill = DiseaseSubtypeFull))+
+  geom_violin(alpha = .5, show.legend = F) + 
+  geom_boxplot(alpha = .8, width = .3, show.legend = F)
+
+```
+
+```{r}
+
+long_data
+
+```
+```{r getting em ready for PCA}
+ex_t <- select(em_scaled, -id) |> 
+  t() |> 
+  as_tibble(.name_repair = ~ em_scaled$id) |> 
+  mutate(sample = colnames(em_scaled)[-1])
+```
+
+
+```{r pca - not scaled}
+pca <- ex_t |> 
+  select(where(is.numeric)) |> 
+  prcomp(scale = F, rank. = 10)
+
+pca_fit <- pca |> 
+  broom::augment(ex_t) |> 
+  mutate(group = stringr::str_extract(sample, "([a-z_]+)_([0-9]+)", group = 1))
+
+summary(pca)
+```
+
+```{r}
+
+pca <- data |> 
+  select(-PseudoID, -starts_with("Disease")) |> 
+  select(where(is.numeric)) |> 
+  prcomp(scale = T, rank. = 50)
+  
+pca_fit <- pca |> 
+  broom::augment(data)
+
+pca_hull <- pca_fit |> 
+  group_by(DiseaseSubtypeFull) |>  
+  slice(chull(.fittedPC1, .fittedPC2))
+
+summary(pca)
+```
+```{r}
+
+plot_pca_grid <- function(df, hull_df, group, size = 2, labels = c(), values = c()){
+  
+  legend_title <- dplyr::enexpr(group)
+  
+  df |> 
+    ggplot(
+      aes(x = .fittedPC1, y = .fittedPC2, colour = {{group}}, fill = {{group}})
+    )+
+    geom_point(size = size)+
+    geom_vline(xintercept = 0)+
+    geom_hline(yintercept = 0)+
+    # stat_ellipse(geom = "polygon", level = 0.95, alpha = 0.2, show.legend = F)+
+    geom_polygon(data = hull_df,
+                 colour = NA, 
+                 alpha = 0.3,
+                 show.legend = FALSE)+
+    scale_color_manual(paste0(legend_title), 
+                       labels = labels,
+                       values = values, 
+                       guide = guide_legend(override.aes = list(size = 5, shape = 15, alpha = 1)))+
+    guides(fill = "none")
+}
+
+format_pca_axes <- function(graph, pca_obj){
+  
+  var <- broom::tidy(pca_obj, matrix = "eigenvalues") |> 
+    pull(percent)
+  
+  var <- round(var * 100, 2)
+  
+  graph +
+    scale_x_continuous(paste0("PC 1 (", var[[1]], "%)"))+
+    scale_y_continuous(paste0("PC 2 (", var[[2]], "%)"))
+  
+}
+
+```
+
+```{r, fig.height=8, fig.width=10}
+
+labels = c("HV", "PA", "CS", "PHT", "PPGL")
+values = c("HV" = "#0f4c5c", "PA" = "#e36414", "CS" = "#fb8b24", "PHT" = "#9a031e", "PPGL" = "#5f0f40")
+values = c("HV" = "#177e89", "PA" = "#084c61", "CS" = "#db3a34", "PHT" = "#ffc857", "PPGL" = "#323031")
+
+.p1 <- pca_fit |>
+  plot_pca_grid(
+    hull_df = pca_hull,  
+    group = DiseaseSubtypeFull, 
+    labels = labels, 
+    values = values)
+
+format_pca_axes(.p1, pca)
+
+```
+
+
