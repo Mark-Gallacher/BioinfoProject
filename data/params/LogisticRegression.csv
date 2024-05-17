@@ -1,5 +1,5 @@
 model_id,param,value
-LG-1,penalty,
+LG-1,penalty,none
 LG-2,C,1
 LG-2,penalty,l1
 LG-3,C,1

@@ -35,7 +35,7 @@ class Pipeline():
 
         return metric_dict
 
-    def tidy_metric_name(self, name:str) -> str | None:
+    def tidy_metric_name(self, name:str) -> str:
         """ REGEX for the metric name out from GridSearchCV.cv_result_
         Example Converts:
             - "split0_test_f1_micro" --> "f1_micro"

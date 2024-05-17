@@ -1,7 +1,7 @@
 from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score
 import numpy as np
 
-def generate_scorers(metric:str) -> dict | None:
+def generate_scorers(metric:str) -> dict:
 
     metric_scorers = {"f1" : f1_score,
                       "fbeta": fbeta_score,
@@ -50,7 +50,7 @@ def generate_scorers(metric:str) -> dict | None:
 # print(generate_scorers("fbeta"))
 
 
-def expand_metrics(metrics:list) -> dict[str]:
+def expand_metrics(metrics:list) -> dict:
 
     ## check the metrics supplied are a list and have more than one element in them
     if not isinstance(metrics, list):

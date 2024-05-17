@@ -60,7 +60,7 @@ KNN-29,n_neighbors,40
 KNN-29,weights,uniform
 KNN-30,n_neighbors,40
 KNN-30,weights,distance
-LG-1,penalty,
+LG-1,penalty,none
 LG-2,C,1
 LG-2,penalty,l1
 LG-3,C,1

@@ -10,7 +10,7 @@ import pandas as pd
 ## us to keep track of what parameters we could change
 class Hyperparametres():
 
-    def __init__(self, model_name:str, model_code:str, params: dict | list[dict]) -> None:
+    def __init__(self, model_name:str, model_code:str, params:dict )-> None:
         
         if len(model_name) < 3 :
             raise ValueError(f"Please Supply a more useful name than {model_name}, for example - LogisticRegression")
@@ -38,7 +38,7 @@ class Hyperparametres():
 
         return grid
 
-    def create_ids(self) -> list[str]:
+    def create_ids(self) -> list:
 
         if self.grid is None:
             raise AttributeError(f"Expected a dictionary, but got None instead, from grid attribute, received: {self.grid}")
@@ -115,7 +115,7 @@ class Model():
         self.folds = folds
         self.cores = n_jobs
 
-    def cross_validate(self, X, y, metrics : dict) -> dict:
+    def cross_validate(self, X, y, metrics:dict) -> dict:
 
         ## this is true if the dictionary is not empty
         if self.params_grid.params:

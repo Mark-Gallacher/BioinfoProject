@@ -15,6 +15,14 @@ from sklearn.preprocessing import StandardScaler
 
 from HelperFunctions import expand_metrics
 
+import os
+
+threads = os.cpu_count()
+
+print()
+print(f"There appear to be {threads} threads available!!")
+print()
+
 #### Loading in the Data ####
 _raw_data = pd.read_csv("../data/TidyData.csv")
 raw_data = _raw_data.drop(["DiseaseSubtype", "PseudoID"], axis = 1)
@@ -45,14 +53,15 @@ metrics = expand_metrics(base_metrics)
 folds = 10
 metrics_output_folder = "../data/metrics/"
 params_output_folder = "../data/params/"
-threads = -2
+#threads = 10
 
 #### LogisticRegression ####
+## penalty was None but that generated an error??
 log_reg_params = Hyperparametres(
                 model_name = "LogisticRegression", 
                 model_code = "LG",
                 params = [ 
-                {"penalty" : [ None ]},
+                {"penalty" : [ "none" ]},
                 {"penalty" : ["l1", "l2"], 
                 "C" : [1, 2, 4, 8, 16]},
                 {"penalty" : ["elasticnet"], 
