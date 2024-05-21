@@ -42,7 +42,6 @@ def generate_scorers(metric:str) -> dict:
                       metric_scorers[metric],
                       multi_class = "ovr",  ## One vs the Rest - default is raise.
                       average = average, 
-                      zero_division = 0, 
                       # response_method = "predict",
                       labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL']
                       )

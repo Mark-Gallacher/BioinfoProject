@@ -156,7 +156,8 @@ svc_model = Model(
         params = svc_params, 
         n_jobs = threads, 
         folds = folds, 
-        max_depth = 1000)
+        max_iter = 1000, 
+        dual = "auto")
 
 #### Collection of Models
 
