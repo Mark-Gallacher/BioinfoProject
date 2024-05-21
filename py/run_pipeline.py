@@ -50,7 +50,7 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 # print(train_labels.value_counts(), train_labels.value_counts()/ len(train_labels))
 
 #### Metrics ####
-base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "roc_auc"]
+base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta"]
 
 metrics = expand_metrics(base_metrics)
 
@@ -113,7 +113,9 @@ rf_params = Hyperparametres(
         model_code = "RF", 
         params = { 
         "n_estimators" : [10, 25, 50, 75, 100, 125, 150], 
+        # "n_estimators" : [10, 100], 
         "min_samples_split" : [2, 4, 8, 12, 16]
+        # "min_samples_split" : [2, 4]
             })
 
 rf_model = Model(model = RandomForestClassifier, 
@@ -130,7 +132,9 @@ gb_params = Hyperparametres(
         model_code = "GB", 
         params = {
         "learning_rate" : [0.01, 0.05, 0.1, 0.2], 
+        # "learning_rate" : [0.01, 0.1], 
         "n_estimators" : [10, 25, 50, 75, 100, 125, 150], 
+        # "n_estimators" : [10, 100], 
             })
 
 gb_model = Model(model = GradientBoostingClassifier, 
@@ -149,6 +153,7 @@ svc_params = Hyperparametres(
         params = {
             "penalty" : ["l1", "l2"], 
             "C" : [1, 2, 4, 8, 16]
+            # "C" : [1, 2]
             })
 
 svc_model = Model(
@@ -156,7 +161,7 @@ svc_model = Model(
         params = svc_params, 
         n_jobs = threads, 
         folds = folds, 
-        max_iter = 1000, 
+        max_iter = 5000, 
         dual = "auto")
 
 #### Collection of Models
