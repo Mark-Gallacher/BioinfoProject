@@ -135,7 +135,7 @@ class Model():
         ## if the params dictionary is empy - no need for GridSearch
         else:
             
-            cv_ = cross_validate(
+            cv_:dict = cross_validate(
                     estimator = self.model, 
                     X = X, 
                     y = y, 

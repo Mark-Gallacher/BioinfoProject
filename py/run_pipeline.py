@@ -8,9 +8,11 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.svm import LinearSVC
 
 from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.model_selection import ParameterGrid
+# from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import StandardScaler
 
 from HelperFunctions import expand_metrics
@@ -18,6 +20,9 @@ from HelperFunctions import expand_metrics
 import os
 
 threads = os.cpu_count()
+
+if threads is None:
+    threads = 1
 
 print()
 print(f"There appear to be {threads} threads available!!")
@@ -45,7 +50,7 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 # print(train_labels.value_counts(), train_labels.value_counts()/ len(train_labels))
 
 #### Metrics ####
-base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta"]
+base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "roc_auc"]
 
 metrics = expand_metrics(base_metrics)
 
@@ -102,11 +107,61 @@ gnb_model = Model(model = GaussianNB,
                   n_jobs = threads,
                   folds = folds)
 
+#### RandomForest ####
+rf_params = Hyperparametres(
+        model_name = "RandomForest", 
+        model_code = "RF", 
+        params = { 
+        "n_estimators" : [10, 25, 50, 75, 100, 125, 150], 
+        "min_samples_split" : [2, 4, 8, 12, 16]
+            })
+
+rf_model = Model(model = RandomForestClassifier, 
+                 params = rf_params, 
+                 n_jobs = threads, 
+                 folds = folds, 
+                 min_samples_leaf = 1, 
+                 max_features = "sqrt")
+
+#### GradientBoosting Trees ####
+
+gb_params = Hyperparametres(
+        model_name = "GradientBoosting", 
+        model_code = "GB", 
+        params = {
+        "learning_rate" : [0.01, 0.05, 0.1, 0.2], 
+        "n_estimators" : [10, 25, 50, 75, 100, 125, 150], 
+            })
+
+gb_model = Model(model = GradientBoostingClassifier, 
+                 params = gb_params, 
+                 n_jobs = threads, 
+                 folds = folds, 
+                 max_features = "sqrt", 
+                 min_samples_leaf = 1
+                 )
+
+#### SVM ####
+
+svc_params = Hyperparametres(
+        model_name = "SupportVectorMachine", 
+        model_code = "SVM", 
+        params = {
+            "penalty" : ["l1", "l2"], 
+            "C" : [1, 2, 4, 8, 16]
+            })
+
+svc_model = Model(
+        model = LinearSVC, 
+        params = svc_params, 
+        n_jobs = threads, 
+        folds = folds, 
+        max_depth = 1000)
 
 #### Collection of Models
 
-model_collection = [log_reg_model, knn_model, gnb_model]
-param_collection = [log_reg_params, knn_params, gnb_params]
+model_collection = [log_reg_model, knn_model, gnb_model, rf_model, gb_model, svc_model]
+param_collection = [log_reg_params, knn_params, gnb_params, rf_params, gb_params, svc_params]
 
 #### Run the Pipeline ####
 

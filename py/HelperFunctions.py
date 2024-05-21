@@ -1,4 +1,4 @@
-from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score
+from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score, roc_auc_score, cohen_kappa_score, matthews_corrcoef, log_loss
 import numpy as np
 
 def generate_scorers(metric:str) -> dict:
@@ -6,7 +6,8 @@ def generate_scorers(metric:str) -> dict:
     metric_scorers = {"f1" : f1_score,
                       "fbeta": fbeta_score,
                       "precision": precision_score, 
-                      "recall" : recall_score}
+                      "recall" : recall_score, 
+                      "roc_auc" : roc_auc_score}
 
     metrics_suffix = ["macro", "micro", "weighted"]
 
@@ -31,6 +32,22 @@ def generate_scorers(metric:str) -> dict:
 
                   for average in metrics_suffix
                   for beta in betas}
+
+        return scorer
+
+    if metric == "roc_auc":
+        ## generate a dictionary of all the variations of the scoring functions
+        scorer = {metric + "_" + average : 
+                  make_scorer(
+                      metric_scorers[metric],
+                      multi_class = "ovr",  ## One vs the Rest - default is raise.
+                      average = average, 
+                      zero_division = 0, 
+                      # response_method = "predict",
+                      labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL']
+                      )
+
+                  for average in metrics_suffix}
 
         return scorer
 
@@ -59,7 +76,7 @@ def expand_metrics(metrics:list) -> dict:
     if len(metrics) < 1:
         raise ValueError("metrics should not be an empty list")
 
-    expandable_metrics = ["f1", "precision", "recall", "fbeta"]
+    expandable_metrics = ["f1", "precision", "recall", "fbeta", "roc_auc"]
 
     output = {}
     for metric in metrics:
