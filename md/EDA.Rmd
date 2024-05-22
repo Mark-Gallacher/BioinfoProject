@@ -57,11 +57,12 @@ data |>
 long_data
 
 ```
+
 ```{r getting em ready for PCA}
-ex_t <- select(em_scaled, -id) |> 
-  t() |> 
-  as_tibble(.name_repair = ~ em_scaled$id) |> 
-  mutate(sample = colnames(em_scaled)[-1])
+# ex_t <- select(em_scaled, -id) |> 
+#   t() |> 
+#   as_tibble(.name_repair = ~ em_scaled$id) |> 
+#   mutate(sample = colnames(em_scaled)[-1])
 ```
 
 
