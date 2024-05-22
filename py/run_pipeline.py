@@ -1,6 +1,7 @@
 from Pipeline import Pipeline
 from Model import Model
 from Model import Hyperparametres
+from Metrics import Metric
 from HelperFunctions import expand_metrics
 
 import pandas as pd
@@ -15,8 +16,6 @@ from sklearn.dummy import DummyClassifier
 from sklearn.model_selection import StratifiedShuffleSplit
 # from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import StandardScaler
-
-from HelperFunctions import expand_metrics
 
 import os
 
@@ -51,9 +50,16 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 # print(train_labels.value_counts(), train_labels.value_counts()/ len(train_labels))
 
 #### Metrics ####
-base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta"]
+base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa"]
 
-metrics = expand_metrics(base_metrics)
+metrics = {}
+for base_metric in base_metrics:
+    metric = Metric(base_metric)
+    metric.generate_scorer_func()
+    for key, value in metric.scorer_func.items():
+        metrics[key] = value
+
+# metrics = expand_metrics(base_metrics)
 
 #### Other Global Params ####
 folds = 10
