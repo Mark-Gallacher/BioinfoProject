@@ -50,7 +50,7 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 # print(train_labels.value_counts(), train_labels.value_counts()/ len(train_labels))
 
 #### Metrics ####
-base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa"]
+base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa", "matthew_coef"]
 
 metrics = {}
 for base_metric in base_metrics:
