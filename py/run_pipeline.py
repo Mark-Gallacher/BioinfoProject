@@ -10,6 +10,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import LinearSVC
+from sklearn.dummy import DummyClassifier
 
 from sklearn.model_selection import StratifiedShuffleSplit
 # from sklearn.model_selection import ParameterGrid
@@ -146,28 +147,44 @@ gb_model = Model(model = GradientBoostingClassifier,
                  )
 
 #### SVM ####
+#
+# svc_params = Hyperparametres(
+#         model_name = "SupportVectorMachine", 
+#         model_code = "SVM", 
+#         params = {
+#             "penalty" : ["l1", "l2"], 
+#             "C" : [1, 2, 4, 8, 16]
+#             # "C" : [1, 2]
+#             })
+#
+# svc_model = Model(
+#         model = SVC, 
+#         params = svc_params, 
+#         n_jobs = threads, 
+#         folds = folds, 
+#         max_iter = 5000, 
+        # dual = "auto")
 
-svc_params = Hyperparametres(
-        model_name = "SupportVectorMachine", 
-        model_code = "SVM", 
-        params = {
-            "penalty" : ["l1", "l2"], 
-            "C" : [1, 2, 4, 8, 16]
-            # "C" : [1, 2]
-            })
+#### Dummy Classifier
+dummy_params = Hyperparametres(model_name = "Dummy", 
+                               model_code= "Dum", 
+                               params= {})
 
-svc_model = Model(
-        model = LinearSVC, 
-        params = svc_params, 
-        n_jobs = threads, 
-        folds = folds, 
-        max_iter = 5000, 
-        dual = "auto")
+dummy_model = Model(model = DummyClassifier,
+                    params = dummy_params,
+                    n_jobs = threads, 
+                    folds = folds,
+                    strategy = "most_frequent")
 
 #### Collection of Models
 
-model_collection = [log_reg_model, knn_model, gnb_model, rf_model, gb_model, svc_model]
-param_collection = [log_reg_params, knn_params, gnb_params, rf_params, gb_params, svc_params]
+model_collection = [log_reg_model, knn_model, gnb_model, 
+                    rf_model, gb_model, #svc_model, 
+                    dummy_model]
+
+param_collection = [log_reg_params, knn_params, gnb_params, 
+                    rf_params, gb_params, #svc_params, 
+                    dummy_params]
 
 #### Run the Pipeline ####
 

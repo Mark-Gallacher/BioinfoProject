@@ -1,5 +1,5 @@
 from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score, roc_auc_score, cohen_kappa_score, matthews_corrcoef, log_loss
-import numpy as np
+# import numpy as np
 
 def generate_scorers(metric:str) -> dict:
 
