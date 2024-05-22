@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 from sklearn.dummy import DummyClassifier
 
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -114,9 +114,8 @@ rf_params = Hyperparametres(
         model_code = "RF", 
         params = { 
         "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200, 250], 
-        # "n_estimators" : [10, 100], 
-        "min_samples_split" : [2, 4, 6, 8, 10, 12, 16]
-        # "min_samples_split" : [2, 4]
+        "min_samples_split" : [2, 4, 6, 8, 10, 12, 16, 30, 50], 
+        "max_depth" : [2, 4, 6, 8, 10, 12, 14, None]
             })
 
 rf_model = Model(model = RandomForestClassifier, 
@@ -133,9 +132,9 @@ gb_params = Hyperparametres(
         model_code = "GB", 
         params = {
         "learning_rate" : [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25], 
-        # "learning_rate" : [0.01, 0.1], 
-        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200, 250] 
-        # "n_estimators" : [10, 100], 
+        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200, 250],
+        "min_samples_split" : [2, 4, 6, 8, 10, 12, 16, 30, 50], 
+        "max_depth" : [2, 4, 6, 8, 10, 12, 14, None]
             })
 
 gb_model = Model(model = GradientBoostingClassifier, 
@@ -147,23 +146,46 @@ gb_model = Model(model = GradientBoostingClassifier,
                  )
 
 #### SVM ####
-#
-# svc_params = Hyperparametres(
-#         model_name = "SupportVectorMachine", 
-#         model_code = "SVM", 
-#         params = {
-#             "penalty" : ["l1", "l2"], 
-#             "C" : [1, 2, 4, 8, 16]
-#             # "C" : [1, 2]
-#             })
-#
-# svc_model = Model(
-#         model = SVC, 
-#         params = svc_params, 
-#         n_jobs = threads, 
-#         folds = folds, 
-#         max_iter = 5000, 
-        # dual = "auto")
+
+svc_params = Hyperparametres(
+         model_name = "SupportVectorMachine", 
+         model_code = "SVM", 
+         params = [
+            {"kernel" : ["linear"],
+             "C" : [1, 2, 4, 8, 16]},
+ 
+             {"kernel": ["rbf", "poly"],
+             "C" : [1, 2, 4, 8, 16], 
+             "gamma" : ["scale", "auto"]}
+            ])
+
+svc_model = Model(
+         model = SVC, 
+         params = svc_params, 
+         n_jobs = threads, 
+         folds = folds, 
+         max_iter = 10000, 
+         cache_size = 2000, 
+         tol = 1e-4)
+
+svc_params_2 = Hyperparametres(
+            model_name = "LinearSVC", 
+            model_code = "LSCM", 
+            params = {
+            "penalty" : ["l2"], 
+            "loss" : ["hinge", "squared_hinge"],
+             "C" : [1, 2, 4, 8, 16], 
+        })
+
+svc_model_2 = Model(
+            model = LinearSVC, 
+            params = svc_params_2, 
+            n_jobs = threads, 
+            folds = folds, 
+            max_iter = 10000, 
+            dual = True, 
+            tol = 1e-4
+            )
 
 #### Dummy Classifier
 dummy_params = Hyperparametres(model_name = "Dummy", 
@@ -179,25 +201,27 @@ dummy_model = Model(model = DummyClassifier,
 #### Collection of Models
 
 model_collection = [log_reg_model, knn_model, gnb_model, 
-                    rf_model, gb_model, #svc_model, 
+                    rf_model, gb_model, svc_model, svc_model_2,
                     dummy_model]
 
 param_collection = [log_reg_params, knn_params, gnb_params, 
-                    rf_params, gb_params, #svc_params, 
+                    rf_params, gb_params, svc_params, svc_model_2,
                     dummy_params]
 
 #### Run the Pipeline ####
 
-for model in param_collection:
+if __name__ == "__main__":
 
-    model.save_as_csv(folder = params_output_folder)
+    for model in param_collection:
 
-for model in model_collection:
+        model.save_as_csv(folder = params_output_folder)
 
-    pipeline = Pipeline(model, metrics)
+    for model in model_collection:
 
-    df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
+        pipeline = Pipeline(model, metrics)
 
-    pipeline.save_as_csv(df, metrics_output_folder)
+        df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
+
+        pipeline.save_as_csv(df, metrics_output_folder)
 
 
