@@ -205,7 +205,7 @@ model_collection = [log_reg_model, knn_model, gnb_model,
                     dummy_model]
 
 param_collection = [log_reg_params, knn_params, gnb_params, 
-                    rf_params, gb_params, svc_params, svc_model_2,
+                    rf_params, gb_params, svc_params, svc_params_2,
                     dummy_params]
 
 #### Run the Pipeline ####
