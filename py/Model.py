@@ -120,17 +120,23 @@ class Model():
         ## this is true if the dictionary is not empty
         if self.params_grid.params:
 
-            cv = GridSearchCV(
-            estimator = self.model,
-            param_grid = self.params_grid.params,
-            cv = self.folds,
-            scoring = metrics, 
-            refit = False, 
-            n_jobs = self.cores)
+            try:
 
-            cv_ = cv.fit(X, y)
-        
-            self.trained_params = cv_.cv_results_["params"]
+                cv = GridSearchCV(
+                estimator = self.model,
+                param_grid = self.params_grid.params,
+                cv = self.folds,
+                scoring = metrics, 
+                refit = False, 
+                n_jobs = self.cores)
+
+                cv_ = cv.fit(X, y)
+            
+                self.trained_params = cv_.cv_results_["params"]
+            
+            except Exception as e:
+                print(f"Issue when running GridSearchCV!!\nModel: {self.model_name} \nError: {e}")            
+                raise SystemExit(1)
 
         ## if the params dictionary is empy - no need for GridSearch
         else:

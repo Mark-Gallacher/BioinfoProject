@@ -9,14 +9,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.dummy import DummyClassifier
 
 from sklearn.model_selection import StratifiedShuffleSplit
 # from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import StandardScaler
-
-from HelperFunctions import expand_metrics
 
 import os
 
@@ -147,23 +145,46 @@ gb_model = Model(model = GradientBoostingClassifier,
                  )
 
 #### SVM ####
-#
-# svc_params = Hyperparametres(
-#         model_name = "SupportVectorMachine", 
-#         model_code = "SVM", 
-#         params = {
-#             "penalty" : ["l1", "l2"], 
-#             "C" : [1, 2, 4, 8, 16]
-#             # "C" : [1, 2]
-#             })
-#
-# svc_model = Model(
-#         model = SVC, 
-#         params = svc_params, 
-#         n_jobs = threads, 
-#         folds = folds, 
-#         max_iter = 5000, 
-        # dual = "auto")
+
+svc_params = Hyperparametres(
+         model_name = "SupportVectorMachine", 
+         model_code = "SVM", 
+         params = [
+            {"kernel" : ["linear"],
+             "C" : [1, 2, 4, 8, 16]},
+ 
+             {"kernel": ["rbf", "poly"],
+             "C" : [1, 2, 4, 8, 16], 
+             "gamma" : ["scale", "auto"]}
+            ])
+
+svc_model = Model(
+         model = SVC, 
+         params = svc_params, 
+         n_jobs = threads, 
+         folds = folds, 
+         max_iter = 10000, 
+         cache_size = 2000, 
+         tol = 1e-4)
+
+svc_params_2 = Hyperparametres(
+            model_name = "LinearSVC", 
+            model_code = "LSCM", 
+            params = {
+            "penalty" : ["l2"], 
+            "loss" : ["hinge", "squared_hinge"],
+             "C" : [1, 2, 4, 8, 16], 
+        })
+
+svc_model_2 = Model(
+            model = LinearSVC, 
+            params = svc_params_2, 
+            n_jobs = threads, 
+            folds = folds, 
+            max_iter = 10000, 
+            dual = True, 
+            tol = 1e-4
+            )
 
 #### Dummy Classifier
 dummy_params = Hyperparametres(model_name = "Dummy", 
@@ -178,13 +199,9 @@ dummy_model = Model(model = DummyClassifier,
 
 #### Collection of Models
 
-model_collection = [log_reg_model, knn_model, gnb_model, 
-                    rf_model, gb_model, #svc_model, 
-                    dummy_model]
+model_collection = [svc_model, svc_model_2]
 
-param_collection = [log_reg_params, knn_params, gnb_params, 
-                    rf_params, gb_params, #svc_params, 
-                    dummy_params]
+param_collection = [svc_params, svc_params_2]
 
 #### Run the Pipeline ####
 

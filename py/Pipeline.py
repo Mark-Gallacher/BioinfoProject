@@ -73,7 +73,7 @@ class Pipeline():
                 metric_name = self.tidy_metric_name(key)
 
                 if metric_name is None:
-                    raise ValueError("No Metrics were found in this Results Dictionary!!")
+                    raise ValueError(f"No Metrics were found in this Results Dictionary with name {metric_name}!!")
 
                 ## extract the values if we know there is some metricx info.
                 values = results[key].tolist()
@@ -89,11 +89,16 @@ class Pipeline():
 
         This has a side effect of updating the values inside metric_dict["id"]
         """
-        _cv = self.model_class.cross_validate(
+        try:
+            _cv = self.model_class.cross_validate(
                         X = X, 
                         y = y, 
                         metrics = self.metric_spec
                         )
+        except Exception as e:
+        
+            print(f"Issue doing cross validation! \nModel: {self.model_name} \n - Error: {e}")
+            raise SystemExit(1)            
 
         ## Update the Metric Dictionary
         self.metric_dict["id"] = self.model_class.generate_ids()
@@ -138,7 +143,7 @@ class Pipeline():
         except Exception as e:
 
             print(f"File was not found - please check the path: {folder}")
-            print(f"Model - {self.model_name} - created error - {e}")
+            print(f"Model: {self.model_name} \n - Error: {e}")
             raise SystemError(1)
 
 
