@@ -7,3 +7,15 @@ SVM-3,C,2
 SVM-3,penalty,l1
 SVM-4,C,2
 SVM-4,penalty,l2
+SVM-5,C,4
+SVM-5,penalty,l1
+SVM-6,C,4
+SVM-6,penalty,l2
+SVM-7,C,8
+SVM-7,penalty,l1
+SVM-8,C,8
+SVM-8,penalty,l2
+SVM-9,C,16
+SVM-9,penalty,l1
+SVM-10,C,16
+SVM-10,penalty,l2
