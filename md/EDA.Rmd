@@ -53,9 +53,36 @@ data |>
 ```
 
 ```{r}
+long_summary <- long_data |> 
+  summarise(.by = mRNA, 
+            mean = mean(deltaCt),
+            sd = sd(deltaCt))
+```
 
-long_data
 
+```{r}
+long_summary |> 
+  ggplot(aes(x = mean))+
+  geom_histogram(bins = 100)
+
+long_summary |> 
+  ggplot(aes(x = 1:178 , y = cumsum(mean) / sum(mean))) +
+  geom_line() +
+  geom_point(size = .2) +
+  labs(x = "", y = "Prop")
+```
+
+
+```{r}
+long_summary |> 
+  ggplot(aes(x = sd))+
+  geom_histogram(bins = 100)
+
+long_summary |> 
+  ggplot(aes(x = 1:178 , y = cumsum(sd) / sum(sd))) +
+  geom_line() +
+  geom_point(size = .2) +
+  labs(x = "", y = "Prop")
 ```
 
 ```{r}
@@ -132,4 +159,21 @@ format_pca_axes(.p1, pca)
 
 ```
 
+```{r, fig.width=13, fig.height=13}
+library(ggcorrplot)
+
+num_data <- data |> 
+  select(where(is.numeric)) |> 
+  select(!DiseaseSubtype)
+
+cor <- num_data |> 
+  scale() |> 
+  cor()
+
+ggcorrplot(cor, colors = c("darkcyan", "white", "red"),
+           # type = "lower", 
+           hc.order = T,
+           lab = F)
+  
+```
 
