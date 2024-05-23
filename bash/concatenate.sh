@@ -1,5 +1,16 @@
 #!/bin/bash -l
 
+if [ "$#" -eq 0 ]
+then
+  echo "Please Specify a Mode of analysis by supplying the name of the directory"
+  exit 1
+fi
+
+## mode of analysis
+## full means we used all data
+## subtypes means we used only the hypertensive groups
+mode=$1
+
 is_dir() {
 
     local dir=$1
@@ -65,11 +76,11 @@ extract_body() {
 main() {
 
     local project_home="/users/2466057g/project"
-    local csv_dir="${project_home}/data"
+    local csv_dir="${project_home}/data/${mode}"
 
     ## check the directory exists before defining the out dir - we don't want it to do in a weird place.
     is_dir $csv_dir \
-        && local out_dir="${csv_dir}/merged" \
+        && local out_dir="${csv_dir}/${mode}/merged" \
         || echo "Directory does not seem to exist - ${csv_dir}"
 
 

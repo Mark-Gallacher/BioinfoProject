@@ -28,6 +28,11 @@ print()
 print(f"There appear to be {threads} threads available!!")
 print()
 
+#### Other Global Params ####
+folds = 10
+metrics_output_folder = "../data/full/metrics/"
+params_output_folder = "../data/full/params/"
+
 #### Loading in the Data ####
 _raw_data = pd.read_csv("../data/TidyData.csv")
 raw_data = _raw_data.drop(["DiseaseSubtype", "PseudoID"], axis = 1)
