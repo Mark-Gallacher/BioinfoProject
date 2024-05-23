@@ -2,7 +2,6 @@ from Pipeline import Pipeline
 from Model import Model
 from Model import Hyperparametres
 from Metrics import Metric
-from HelperFunctions import expand_metrics
 
 import pandas as pd
 
@@ -14,7 +13,6 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.dummy import DummyClassifier
 
 from sklearn.model_selection import StratifiedShuffleSplit
-# from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import StandardScaler
 
 import os
@@ -33,9 +31,13 @@ folds = 10
 metrics_output_folder = "../data/full/metrics/"
 params_output_folder = "../data/full/params/"
 
+metrics_output_folder = "../data/subtypes/metrics/"
+params_output_folder = "../data/subtypes/params/"
+
 #### Loading in the Data ####
-_raw_data = pd.read_csv("../data/TidyData.csv")
+_raw_data = pd.read_csv("../data/SubTypeData.csv")
 raw_data = _raw_data.drop(["DiseaseSubtype", "PseudoID"], axis = 1)
+
 
 sss = StratifiedShuffleSplit(n_splits = 1, test_size = .2, random_state = 1)
 
@@ -52,7 +54,7 @@ scaler = StandardScaler()
 columns = _unscaled_train_data.columns
 train_data = scaler.fit_transform(_unscaled_train_data[columns])
 
-# print(train_labels.value_counts(), train_labels.value_counts()/ len(train_labels))
+
 
 #### Metrics ####
 base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa", "matthew_coef"]
@@ -64,13 +66,8 @@ for base_metric in base_metrics:
     for key, value in metric.scorer_func.items():
         metrics[key] = value
 
-# metrics = expand_metrics(base_metrics)
 
-#### Other Global Params ####
-folds = 10
-metrics_output_folder = "../data/metrics/"
-params_output_folder = "../data/params/"
-#threads = 10
+
 
 #### LogisticRegression ####
 ## penalty was None but that generated an error??
@@ -94,6 +91,8 @@ log_reg_model = Model(model = LogisticRegression,
                 n_jobs = threads,
                 folds = folds)
 
+
+
 #### K-Nearest Neighbours ####
 knn_params = Hyperparametres(
             model_name = "KNearestNeighbours", 
@@ -108,6 +107,8 @@ knn_model = Model(model = KNeighborsClassifier,
                   n_jobs = threads,
                   folds = folds)
 
+
+
 #### Naive Bayes ####
 gnb_params = Hyperparametres(params = {}, 
                              model_name = "GaussianNaiveBayes", 
@@ -118,6 +119,8 @@ gnb_model = Model(model = GaussianNB,
                   params = gnb_params, 
                   n_jobs = threads,
                   folds = folds)
+
+
 
 #### RandomForest ####
 rf_params = Hyperparametres(
@@ -136,8 +139,10 @@ rf_model = Model(model = RandomForestClassifier,
                  min_samples_leaf = 1, 
                  max_features = "sqrt")
 
-#### GradientBoosting Trees ####
 
+
+
+#### GradientBoosting Trees ####
 gb_params = Hyperparametres(
         model_name = "GradientBoosting", 
         model_code = "GB", 
@@ -156,8 +161,9 @@ gb_model = Model(model = GradientBoostingClassifier,
                  min_samples_leaf = 1
                  )
 
-#### SVM ####
 
+
+#### SVM ####
 svc_params = Hyperparametres(
          model_name = "SupportVectorMachine", 
          model_code = "SVM", 
@@ -198,6 +204,8 @@ svc_model_2 = Model(
             tol = 1e-4
             )
 
+
+
 #### Dummy Classifier
 dummy_params = Hyperparametres(model_name = "Dummy", 
                                model_code= "Dum", 
@@ -209,8 +217,9 @@ dummy_model = Model(model = DummyClassifier,
                     folds = folds,
                     strategy = "most_frequent")
 
-#### Collection of Models
 
+
+#### Collection of Models
 model_collection = [log_reg_model, knn_model, gnb_model, 
                     rf_model, gb_model, svc_model, svc_model_2,
                     dummy_model]
