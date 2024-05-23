@@ -23,7 +23,7 @@ verify_code_in_tibble <- function(params, code){
 
 verify_is_tibble <- function(arg_value, arg_name){
   
-  if (missing(arg_value) || !tibble::is.tibble(arg_value)){ 
+  if (missing(arg_value) || !tibble::is_tibble(arg_value)){ 
     stop(paste0("Please ensure you supplied a tibble for `", arg_name, "`!"))
   }else{
     
@@ -73,6 +73,34 @@ extract_models <- function(params) {
   return(.all_codes)
   
 } 
+
+get_model_from_code <- function(code){
+  
+  if (!exists("all_models")){ 
+    stop(paste0("Please ensure you have created the all_model object!"))
+  }
+  ## get the name of the tibble
+  .tibble_name <- all_models[code] 
+  
+  ## convert the string to the actual object
+  .tibble <- eval(as.name(.tibble_name))
+  
+  return(.tibble)
+}
+
+get_summary_from_code <- function(code){
+  
+  if (!exists("all_summaries")){ 
+    stop(paste0("Please ensure you have created the all_summaries object!"))
+  }
+  ## get the name of the tibble
+  .tibble_name <- all_summaries[code] 
+  
+  ## convert the string to the actual object
+  .tibble <- eval(as.name(.tibble_name))
+  
+  return(.tibble)
+}
   
 
 
@@ -82,10 +110,13 @@ pivot_param_tibble <- function(params, code){
   # verify_is_string(code, "code")
   # verify_code_in_tibble(code, params)
   
-  .hyperparams <- extract_hyperparams(params, code)
-  .len_hp <- length(.hyperparams)
+  to_title_chaarcter <- function(x) return(stringr::str_to_title(as.character(x)))
   
-  .replace_list <- as.list(setNames(rep("None", .len_hp), .hyperparams))
+  numeric_hyperparameters <- c("learning_rate", "max_depth", "min_samples_split", "n_estimators", "n_neighbors", "C", "l1_ratio")
+  categoric_hyperparameters <- c("weights", "loss", "penalty", "kernel", "gamma", "None")
+
+  .replace_list_n <- as.list(setNames(rep(0, length(numeric_hyperparameters)), numeric_hyperparameters))
+  .replace_list_c <- as.list(setNames(rep("None", length(categoric_hyperparameters)), categoric_hyperparameters))
   
   ## filter than pivot the params table
   .pivot_params <- params |> 
@@ -94,7 +125,16 @@ pivot_param_tibble <- function(params, code){
       id_cols = c(model_code, model_id),
       names_from = param, 
       values_from = value) |> 
-    tidyr::replace_na(replace = .replace_list)
+    dplyr::mutate(
+      across(
+        .cols = any_of(numeric_hyperparameters),
+        .fns = as.numeric),
+      across(
+        .cols = any_of(categoric_hyperparameters),
+        .fns =  to_title_chaarcter)
+      ) |>
+    replace_na(.replace_list_n) |>
+    replace_na(.replace_list_c)
   
   return(.pivot_params)
 }
@@ -132,7 +172,7 @@ parse_metric_column <- function(metrics){
       average_type = stringr::str_extract(metric, "[a-z]+$"),
       metric = stringr::str_remove(metric, "beta_"),
       metric_type = stringr::str_extract(metric, "^[a-z]+[0-9]*"), 
-      average_type = dplyr::if_else(average_type == "accuracy", "None", average_type)
+      average_type = dplyr::if_else(average_type == "accuracy", "None", stringr::str_to_title(average_type))
     )
   
   return(.parse_metrics)
@@ -188,7 +228,9 @@ generate_model_tibbles <- function(metrics, params, code){
   
   .summary <- summarise_model_tibble(model = .model, params = .params)
   
-  return(list("model" = .model, "summary" = .summary))
+  .hyperparams <- extract_hyperparams(params, code = code)
+  
+  return(list("model" = .model, "summary" = .summary, "hyper" = .hyperparams))
   
 }
 
