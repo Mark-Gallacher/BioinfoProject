@@ -1,0 +1,128 @@
+---
+title: "Metrics (subtype Data)"
+author: '2466057'
+date: "2024-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 10)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+
+## load in R script to generate the environment variables and functions
+source(here("r/setup_subtypes.R"))
+
+theme_set(report_theme())
+```
+
+```{r}
+metrics_df <- all_codes |> 
+  map(get_model_from_code) |> 
+  bind_rows() |> 
+  select(model_type:metric_type) |> 
+  mutate(fold = str_extract(id, "[0-9]+$"))
+```
+
+
+```{r}
+## find the mean for the model type - ie the model code - summing over folds and models
+summary_code <- metrics_df |>
+  summarise(.by = model_code, 
+            mean_code = mean(score), 
+            sd_code = sd(score))
+
+## find the mean for each model - ie the model_id - summing over folds
+summary_id <- metrics_df |>
+  summarise(.by = model_id, 
+            mean_id = mean(score), 
+            sd_id = sd(score))
+  
+```
+
+```{r}
+metric_code <- metrics_df |> 
+  inner_join(summary_code, by = "model_code") |> 
+  summarise(.by = c(metric, model_code), 
+            mean_metric = mean(score),
+            sd_metric = sd(score), 
+            rel_mean = mean_metric / mean_code,
+            rel_sd = sd_metric / sd_code,
+            )
+
+metric_id <- metrics_df |> 
+  inner_join(summary_id, by = "model_id") |> 
+  summarise(.by = c(metric, model_id, model_code), 
+            mean_metric = mean(score),
+            sd_metric = sd(score), 
+            rel_mean = mean_metric / mean_id,
+            rel_sd = sd_metric / sd_id,
+            )
+```
+
+
+```{r}
+metric_code |> 
+  ggplot(aes(x = model_code, y = rel_mean, colour = metric, group = metric))+
+  geom_point(size = 1.5)+
+  geom_line(linewidth = 1)+
+  report_theme(base_size = 10)
+
+
+metric_id |> 
+  ggplot(aes(x = model_code, y = rel_mean, colour = metric, group = metric))+
+  geom_jitter(size = 1.5, width = .1)+
+  # geom_line(linewidth = 1)+
+  stat_summary(geom = "line", fun = mean, linewidth = 1)+
+  report_theme(base_size = 10)
+```
+
+```{r}
+metric_code |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = metric, group = metric))+
+  geom_point(size = 1.5)+
+  report_theme(base_size = 10)
+
+
+metric_id |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = metric, group = metric))+
+  geom_point(size = 1, alpha = .5)+
+  report_theme(base_size = 10)
+```
+
+
+
+```{r, fig.width = 14}
+
+metrics_df |> 
+  summarise(.by = c(model_id, model_type, metric_type, average_type),
+          mean_score = mean(score)) |> 
+  filter(average_type != "None") |> 
+  ggplot(aes(x = average_type, y = mean_score, colour = model_type, group = model_type))+
+  geom_jitter(width = .1, alpha = .4, size = .5)+
+
+  stat_summary(geom = "line", fun = mean, linewidth = 1) +
+  facet_wrap(~metric_type)+
+  # coord_fixed()+
+  report_theme(base_size = 15)
+
+```
+
+```{r}
+library(ggcorrplot)
+
+corr <- metrics |> 
+  select(where(is.numeric)) |> 
+  scale() |> 
+  cor()
+
+ggcorrplot(corr, 
+           type = "lower", 
+           # hc.order = T, 
+           lab = TRUE)
+
+```
+

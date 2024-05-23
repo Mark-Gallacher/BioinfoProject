@@ -80,7 +80,7 @@ main() {
 
     ## check the directory exists before defining the out dir - we don't want it to do in a weird place.
     is_dir $csv_dir \
-        && local out_dir="${csv_dir}/${mode}/merged" \
+        && local out_dir="${csv_dir}/merged" \
         || echo "Directory does not seem to exist - ${csv_dir}"
 
 

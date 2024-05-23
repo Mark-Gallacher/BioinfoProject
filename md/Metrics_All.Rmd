@@ -1,5 +1,5 @@
 ---
-title: "Metrics"
+title: "Metrics (All Data)"
 author: '2466057'
 date: "2024-05-23"
 output: html_document
@@ -14,7 +14,7 @@ library(tidyverse)
 library(here)
 
 ## load in R script to generate the environment variables and functions
-source(here("r/setup.R"))
+source(here("r/setup_full.R"))
 
 theme_set(report_theme())
 ```

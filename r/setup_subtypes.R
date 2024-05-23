@@ -5,8 +5,8 @@ source(here("r/process_merged_data_functions.R"))
 source(here("r/graph_functions.R"))
 
 ### READING IN THE DATA
-.raw_metrics <- read_csv(here("data/merged/metrics_merged.csv"))
-.raw_params <- read_csv(here("data/merged/params_merged.csv"))
+.raw_metrics <- read_csv(here("data/subtypes/merged/metrics_merged.csv"))
+.raw_params <- read_csv(here("data/subtypes/merged/params_merged.csv"))
 
 
 ### PARSING THE DATA
