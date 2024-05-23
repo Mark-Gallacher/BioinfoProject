@@ -31,9 +31,15 @@ data <- df |>
 metadata <- df |> 
   select(!M546980:M530493)
 
+HTdata <- data |> 
+  filter(DiseaseSubtypeFull != "HV")
+
 ## save the csvs
 write_csv(data, file = here("data/TidyData.csv"))
+write_csv(HTdata, file = here("data/SubTypeData.csv"))
 write_csv(metadata, file = here("data/MetaData.csv"))
+
+
 
 ## Next steps could be exploring the Arrow format to get practice with it. 
 
