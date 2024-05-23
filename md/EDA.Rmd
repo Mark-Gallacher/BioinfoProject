@@ -94,6 +94,7 @@ pca_hull <- pca_fit |>
 
 summary(pca)
 ```
+
 ```{r}
 
 plot_pca_grid <- function(df, hull_df, group, size = 2, labels = c(), values = c()){
