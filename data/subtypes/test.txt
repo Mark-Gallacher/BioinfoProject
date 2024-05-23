@@ -1,0 +1,1 @@
+This is a test - Git is ignoring this folder and I think it is because it is empty
