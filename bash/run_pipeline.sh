@@ -54,7 +54,7 @@ then
 
 fi
 
-bash ${bash_script_home}/concatenate.sh
+bash ${bash_script_home}/concatenate.sh "subtypes"
 
 echo "CSV files were concatenated"
 
