@@ -1,0 +1,62 @@
+---
+title: "Metrics"
+author: '2466057'
+date: "2024-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 10)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+
+## load in R script to generate the environment variables and functions
+source(here("r/setup.R"))
+
+theme_set(report_theme())
+```
+
+```{r}
+metrics_df <- all_codes |> 
+  map(get_model_from_code) |> 
+  bind_rows() |> 
+  select(model_type:None) |> 
+  mutate(fold = str_extract(id, "[0-9]+$"))
+```
+
+
+
+```{r, fig.width = 14}
+
+metrics_df |> 
+  summarise(.by = c(model_id, model_type, metric_type, average_type),
+          mean_score = mean(score)) |> 
+  filter(average_type != "None") |> 
+  ggplot(aes(x = average_type, y = mean_score, colour = model_type, group = model_type))+
+  geom_jitter(width = .1, alpha = .4, size = .5)+
+
+  stat_summary(geom = "line", fun = mean, linewidth = 1) +
+  facet_wrap(~metric_type)+
+  # coord_fixed()+
+  report_theme(base_size = 15)
+
+```
+
+```{r}
+library(ggcorrplot)
+
+corr <- metrics |> 
+  select(where(is.numeric)) |> 
+  scale() |> 
+  cor()
+
+ggcorrplot(corr, 
+           type = "lower", 
+           # hc.order = T, 
+           lab = TRUE)
+
+```
+

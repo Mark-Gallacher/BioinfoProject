@@ -58,26 +58,6 @@ long_data
 
 ```
 
-```{r getting em ready for PCA}
-# ex_t <- select(em_scaled, -id) |> 
-#   t() |> 
-#   as_tibble(.name_repair = ~ em_scaled$id) |> 
-#   mutate(sample = colnames(em_scaled)[-1])
-```
-
-
-```{r pca - not scaled}
-pca <- ex_t |> 
-  select(where(is.numeric)) |> 
-  prcomp(scale = F, rank. = 10)
-
-pca_fit <- pca |> 
-  broom::augment(ex_t) |> 
-  mutate(group = stringr::str_extract(sample, "([a-z_]+)_([0-9]+)", group = 1))
-
-summary(pca)
-```
-
 ```{r}
 
 pca <- data |> 
