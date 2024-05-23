@@ -1,4 +1,4 @@
-source(here::here("R/process_merged_data_functions.R"))
+source(here::here("r/process_merged_data_functions.R"))
 
 average_colours = c("Macro" = "#FF2E00", "Micro" = "#FEA82F", "Weighted" = "#5448C8", "None" = "#423E3B")
 subtype_colours = c("HV" = "#177e89", "PA" = "#084c61", "CS" = "#db3a34", "PHT" = "#ffc857", "PPGL" = "#323031")
@@ -60,10 +60,77 @@ plot_hyperparam_1n_1c <- function(code, param1, param2){
                colour = average_type, 
                group = average_type))+
     geom_point(alpha = .8, size = 1.5, show.legend = F) +
-    geom_smooth(se = F, linewidth = 2) +
+    # geom_smooth(se = F, linewidth = 2) +
+    stat_summary(fun = mean, geom = "line", linewidth = 2) +
     scale_x_continuous(.x_title) + 
     scale_y_continuous("Mean Metric Score") + 
     scale_colour_manual("Average Method", values = average_colours) + 
     ggtitle(paste0("Hyperparameters for ", .title)) +
     facet_wrap(vars({{ param2 }}))
 }
+
+## Assumes the first param is numeric and the second is categorical
+plot_hyperparam_1n <- function(code, param1){
+  
+  .x_string <- rlang::as_string(rlang::ensym(param1))
+  .x_title <- stringr::str_replace(.x_string, pattern = "_", replacement = " ") |> 
+    stringr::str_to_title()
+  
+  .title <- all_names[code]
+  
+  get_summary_from_code(code) |> 
+    ggplot(aes(x = {{ param1 }}, 
+               y = mean_score, 
+               colour = average_type, 
+               group = average_type))+
+    geom_point(alpha = .5, size = 1.5, show.legend = T) +
+    stat_summary(fun = mean, geom = "line", linewidth = 2) +
+    scale_x_continuous(.x_title) + 
+    scale_y_continuous("Mean Metric Score") + 
+    scale_colour_manual("Average Method", values = average_colours) + 
+    ggtitle(paste0("Hyperparameters for ", .title))
+}
+
+
+
+
+
+
+#### TESTING
+# plot_hyper <- function(code){
+#   FACET <-  FALSE
+#   
+#   .hyper <- all_hyper[[code]] 
+#   
+#   if(length(.hyper) < 1){
+#     stop(
+#       paste0("No Hyperparameters were found for '", code, 
+#              "' !\nExpected a member of ", 
+#              paste0(names(all_hyper), collapse = "', '"))
+#     )
+#   }
+#   
+#   if(is.na(.hyper[[1]])){
+#     warning(paste0("This model appears to no have hyperparameters for '", code, "'\n"))
+#     return(NULL)
+#   }
+#   
+#   if(length(.hyper) == 1){ .x_axis <-  .hyper[[1]] }
+#   
+#   if(length(.hyper) == 2){ 
+#     .x_axis <- .hyper[[1]]
+#     .colour <-  .hyper[[2]]
+#   }
+#   
+#   if(length(.hyper) == 3){ 
+#     .x_axis <- .hyper[[1]]
+#     .colour <- .hyper[[2]]
+#     FACET <- TRUE
+#   }
+#   
+#   return(.hyper)
+# }
+# 
+# plot_hyper(all_codes[[3]])
+# plot_hyper(all_codes[[1]])
+

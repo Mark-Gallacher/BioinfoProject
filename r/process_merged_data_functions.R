@@ -63,7 +63,6 @@ extract_hyperparams <- function(params, code){
 }
 
 
-
 extract_models <- function(params) {
   
   .all_codes <- params |> 
@@ -71,6 +70,16 @@ extract_models <- function(params) {
     unique()
   
   return(.all_codes)
+  
+} 
+
+extract_fullname <- function(metrics) {
+  
+  .all_names <- metrics |> 
+    purrr::pluck("model_type") |> 
+    unique()
+  
+  return(.all_names)
   
 } 
 
@@ -169,10 +178,10 @@ parse_metric_column <- function(metrics){
   
   .parse_metrics <- metrics |>
     dplyr::mutate(
-      average_type = stringr::str_extract(metric, "[a-z]+$"),
+      average_type = stringr::str_extract(metric, "(macro|micro|weighted)$"),
       metric = stringr::str_remove(metric, "beta_"),
       metric_type = stringr::str_extract(metric, "^[a-z]+[0-9]*"), 
-      average_type = dplyr::if_else(average_type == "accuracy", "None", stringr::str_to_title(average_type))
+      average_type = dplyr::if_else(is.na(average_type), "None", stringr::str_to_title(average_type))
     )
   
   return(.parse_metrics)
