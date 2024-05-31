@@ -13,6 +13,8 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.dummy import DummyClassifier
 
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import RFECV
 from sklearn.preprocessing import StandardScaler
 
 import os
@@ -27,7 +29,7 @@ print(f"There appear to be {threads} threads available!!")
 print()
 
 #### Other Global Params ####
-folds = 10
+num_folds = 10
 metrics_output_folder = "../data/full/metrics/"
 params_output_folder = "../data/full/params/"
 
@@ -36,25 +38,80 @@ params_output_folder = "../data/subtypes/params/"
 
 #### Loading in the Data ####
 _raw_data = pd.read_csv("../data/SubTypeData.csv")
-raw_data = _raw_data.drop(["DiseaseSubtype", "PseudoID"], axis = 1)
+raw_data = _raw_data.drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
 
+### Explicitly controlling the folds, so they are the same across all models
+folds = StratifiedKFold(n_splits = num_folds, random_state = 1, shuffle = True)
 
+### Creating the test and train sets
 sss = StratifiedShuffleSplit(n_splits = 1, test_size = .2, random_state = 1)
 
-
-for train_i, test_i in sss.split(raw_data,  raw_data["DiseaseSubtypeFull"]):
+for train_i, test_i in sss.split(raw_data,  raw_data["DiseaseSubtype"]):
     train_set = raw_data.loc[train_i]
     test_set = raw_data.loc[test_i]
 
-_unscaled_train_data = train_set.drop("DiseaseSubtypeFull", axis = 1)
-train_labels = train_set["DiseaseSubtypeFull"].copy()
+_unscaled_train_data = train_set.drop("DiseaseSubtype", axis = 1)
+train_labels = train_set["DiseaseSubtype"].copy()
 
+### Scale the Features - Only looking at the training data for now, not the testing set
 scaler = StandardScaler()
-
 columns = _unscaled_train_data.columns
 train_data = scaler.fit_transform(_unscaled_train_data[columns])
 
+### Feature Extraction
+lg_rfe = RFECV(estimator = LogisticRegression(max_iter = 5000, solver = "saga"), 
+            cv = folds, 
+            step = 0.03,
+            scoring = "balanced_accuracy",
+            min_features_to_select = 10, 
+            n_jobs = threads)
 
+
+
+rf_rfe = RFECV(estimator = RandomForestClassifier(), 
+            cv = folds, 
+            step = 0.03,
+            scoring = "balanced_accuracy",
+            min_features_to_select = 10, 
+            n_jobs = threads)
+
+rf_rfe.set_output(transform = "pandas")
+lg_rfe.set_output(transform = "pandas")
+
+new_feautres = rf_rfe.fit_transform(X = train_set, y = train_labels)
+new_feautres = lg_rfe.fit_transform(X = train_set, y = train_labels)
+
+new_feautres.to_csv("../data/lg_new_features.csv")
+new_feautres.to_csv("../data/rf_new_features.csv")
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+cv_results = pd.DataFrame(rf_rfe.cv_results_)
+plt.figure()
+plt.xlabel("Number of features selected")
+plt.ylabel("Mean test accuracy")
+plt.errorbar(
+    x=cv_results["n_features"],
+    y=cv_results["mean_test_score"],
+    yerr=cv_results["std_test_score"],
+)
+plt.title("Recursive Feature Elimination \nwith correlated features")
+plt.savefig("RF_RFE.png")
+
+cv_results = pd.DataFrame(lg_rfe.cv_results_)
+plt.figure()
+plt.xlabel("Number of features selected")
+plt.ylabel("Mean test accuracy")
+plt.errorbar(
+    x=cv_results["n_features"],
+    y=cv_results["mean_test_score"],
+    yerr=cv_results["std_test_score"],
+)
+plt.title("Recursive Feature Elimination \nwith correlated features")
+plt.savefig("LG_RFE.png")
+
+raise SystemExit(1)
 
 #### Metrics ####
 base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa", "matthew_coef"]
