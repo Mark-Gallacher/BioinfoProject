@@ -9,6 +9,7 @@ numpy = "*"
 scikit-learn = "*"
 pynvim = "*"
 joblib = "*"
+matplotlib = "*"
 
 [dev-packages]
 
