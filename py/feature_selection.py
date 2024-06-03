@@ -1,3 +1,7 @@
+from Pipeline import Pipeline
+from FeatureElimiation import FeatureElimiation
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -52,6 +56,22 @@ lg_rfe = RFECV(estimator = LogisticRegression(max_iter = 5000, solver = "saga"),
             scoring = "balanced_accuracy",
             min_features_to_select = 1, 
             n_jobs = threads)
+
+lg_rfe = FeatureElimiation(
+            model_name = "LogisticRegressionRFE", 
+            model_code = "LG", 
+            model = LogisticRegression, 
+            n_jobs = threads, 
+            folds = folds, 
+            metrics = "balanced_accuracy", 
+            max_iter = 5000, 
+            solver = "saga")
+
+pipeline = Pipeline(model = lg_rfe, metric_spec = )
+
+
+raise SystemExit(0)
+
 
 # nb_rfe = RFECV(estimator = GaussianNB(), 
 #             cv = folds, 
