@@ -1,6 +1,6 @@
 from Pipeline import Pipeline
-from FeatureElimiation import FeatureElimiation
-
+from FeatureElimination import FeatureElimination
+from Metrics import Metric
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,6 +24,7 @@ print(f"There appear to be {threads} threads available!!")
 print()
 
 img_dir = "../png/feature_selection"
+out_dir = "../data/feature_selection"
 
 num_folds = 10
 
@@ -50,111 +51,45 @@ columns = _unscaled_train_data.columns
 train_data = scaler.fit_transform(_unscaled_train_data[columns])
 
 ### Feature Extraction
-lg_rfe = RFECV(estimator = LogisticRegression(max_iter = 5000, solver = "saga"), 
-            cv = folds, 
-            step = 1,
-            scoring = "balanced_accuracy",
-            min_features_to_select = 1, 
-            n_jobs = threads)
 
-lg_rfe = FeatureElimiation(
+lg_rfe = FeatureElimination(
             model_name = "LogisticRegressionRFE", 
             model_code = "LG", 
             model = LogisticRegression, 
             n_jobs = threads, 
             folds = folds, 
-            metrics = "balanced_accuracy", 
+            out_dir = out_dir,
             max_iter = 5000, 
             solver = "saga")
 
-pipeline = Pipeline(model = lg_rfe, metric_spec = )
+rf_rfe = FeatureElimination(
+            model_name = "RandomForestRFE", 
+            model_code = "RF",
+            model = RandomForestClassifier,
+            folds = folds, 
+            n_jobs = threads, 
+            out_dir = out_dir)
+
+gb_rfe = FeatureElimination(
+            model_name = "GradientBoostingRFE", 
+            model_code = "GB", 
+            model = GradientBoostingClassifier, 
+            folds = folds, 
+            n_jobs = threads, 
+            out_dir = out_dir)
+
+#### Metrics ####
+base_metric = "balanced_accuracy"
 
 
-raise SystemExit(0)
+for model in [lg_rfe, rf_rfe, gb_rfe]:
+
+    pipeline = Pipeline(model = model, metric_spec = base_metric)
+
+    df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
+
+    pipeline.save_as_csv(df, out_dir)
+
+    pipeline.model_class.extract_best_features(raw_df = _raw_data)
 
 
-# nb_rfe = RFECV(estimator = GaussianNB(), 
-#             cv = folds, 
-#             step = 1,
-#             scoring = "balanced_accuracy",
-#             min_features_to_select = 1, 
-#             n_jobs = threads)
-
-rf_rfe = RFECV(estimator = RandomForestClassifier(), 
-            cv = folds, 
-            step = 1,
-            scoring = "balanced_accuracy",
-            min_features_to_select = 1, 
-            n_jobs = threads)
-
-gb_rfe = RFECV(estimator = GradientBoostingClassifier(min_samples_split = 10), 
-            cv = folds, 
-            step = 1,
-            scoring = "balanced_accuracy",
-            min_features_to_select = 1, 
-            n_jobs = threads)
-
-rf_rfe.set_output(transform = "pandas")
-lg_rfe.set_output(transform = "pandas")
-# nb_rfe.set_output(transform = "pandas")
-gb_rfe.set_output(transform = "pandas")
-
-rf_new_feautres = rf_rfe.fit_transform(X = train_set, y = train_labels)
-lg_new_feautres = lg_rfe.fit_transform(X = train_set, y = train_labels)
-# nb_new_feautres = nb_rfe.fit_transform(X = train_set, y = train_labels)
-gb_new_feautres = gb_rfe.fit_transform(X = train_set, y = train_labels)
-
-rf_new_feautres.to_csv("../data/rf_new_features.csv")
-lg_new_feautres.to_csv("../data/lg_new_features.csv")
-# nb_new_feautres.to_csv("../data/lg_new_features.csv")
-gb_new_feautres.to_csv("../data/gb_new_features.csv")
-
-
-
-cv_results = pd.DataFrame(rf_rfe.cv_results_)
-plt.figure()
-plt.xlabel("Number of features selected")
-plt.ylabel("Mean test accuracy")
-plt.errorbar(
-    x=cv_results["n_features"],
-    y=cv_results["mean_test_score"],
-    yerr=cv_results["std_test_score"],
-)
-plt.title("Recursive Feature Elimination \nwith correlated features")
-plt.savefig(f"{img_dir}/RF_RFE.png")
-
-cv_results = pd.DataFrame(lg_rfe.cv_results_)
-plt.figure()
-plt.xlabel("Number of features selected")
-plt.ylabel("Mean test accuracy")
-plt.errorbar(
-    x=cv_results["n_features"],
-    y=cv_results["mean_test_score"],
-    yerr=cv_results["std_test_score"],
-)
-plt.title("Recursive Feature Elimination \nwith correlated features")
-plt.savefig(f"{img_dir}/LG_RFE.png")
-
-# cv_results = pd.DataFrame(nb_rfe.cv_results_)
-# plt.figure()
-# plt.xlabel("Number of features selected")
-# plt.ylabel("Mean test accuracy")
-# plt.errorbar(
-#     x=cv_results["n_features"],
-#     y=cv_results["mean_test_score"],
-#     yerr=cv_results["std_test_score"],
-# )
-# plt.title("Recursive Feature Elimination \nwith correlated features")
-# plt.savefig("NB_RFE.png")
-
-cv_results = pd.DataFrame(gb_rfe.cv_results_)
-plt.figure()
-plt.xlabel("Number of features selected")
-plt.ylabel("Mean test accuracy")
-plt.errorbar(
-    x=cv_results["n_features"],
-    y=cv_results["mean_test_score"],
-    yerr=cv_results["std_test_score"],
-)
-plt.title("Recursive Feature Elimination \nwith correlated features")
-plt.savefig(f"{img_dir}/GB_RFE.png")

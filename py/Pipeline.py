@@ -9,7 +9,7 @@ class Pipeline():
     """
     def __init__(self, model:Model, metric_spec:dict):
         """
-        - model should a Model class
+        - model should a Model class or FeatureElimination class
         - metric_spec should be a dictionary of metrics
             - with "name" : "metric_api"
         """
