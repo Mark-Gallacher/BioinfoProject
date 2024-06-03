@@ -102,7 +102,7 @@ class Hyperparametres():
 ## and allow for more complex validations or conditions. 
 class Model():
     
-    def __init__(self, model, params:Hyperparametres, folds:int = 2, n_jobs:int = 1,  **kwargs) -> None:
+    def __init__(self, model, params:Hyperparametres, folds, n_jobs:int = 1,  **kwargs) -> None:
         
         if not is_classifier(model):
             raise ValueError("model should be a classifer from sci-kit learn!")
@@ -157,18 +157,20 @@ class Model():
         are 1-based indices. This allows us to connect the params to the metrics.
         """
 
+        folds = self.folds.n_splits
+
         model_id = []
 
         ## if we didn't do grid search - we only need to do fold cv.
         if not self.trained_params:
 
-            for fold in range(1, self.folds + 1):
+            for fold in range(1, folds + 1):
 
                 model_id.append(self.code + "-" + "1" + "-" + str(fold))
 
         else:
             num_models = len(self.trained_params)
-            for fold in range(1, self.folds + 1):
+            for fold in range(1, folds + 1):
                 for model in range(1, num_models + 1):
 
                     model_id.append(self.code + "-" + str(model) + "-" + str(fold))
