@@ -47,14 +47,14 @@ class FeatureElimination():
 
 
         ## define the name of the file, use the dir provided and the model name
-        file_name = self.out_dir + "/" + self.model_name + ".csv"
+        file_name = self.out_dir + "/" + self.model_name + "_Features.csv"
 
         ## filter the original data
         columns_to_keep = self.fit.get_support(indices = True)
         df = raw_df.iloc[:, columns_to_keep]
 
         ## write to a csv to use in the full pipeline
-        df.to_csv(file_name)
+        df.to_csv(file_name, index = False)
 
 
     def generate_ids(self) -> list:
