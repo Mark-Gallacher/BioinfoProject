@@ -1,0 +1,9 @@
+model_id,param,value
+KNN-1,n_neighbors,2
+KNN-1,weights,uniform
+KNN-2,n_neighbors,2
+KNN-2,weights,distance
+KNN-3,n_neighbors,40
+KNN-3,weights,uniform
+KNN-4,n_neighbors,40
+KNN-4,weights,distance
