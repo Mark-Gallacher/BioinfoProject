@@ -29,14 +29,31 @@ print()
 
 #### Other Global Params ####
 num_folds = 10
-metrics_output_folder = "../data/full/metrics/"
-params_output_folder = "../data/full/params/"
 
-metrics_output_folder = "../data/subtypes/metrics/"
-params_output_folder = "../data/subtypes/params/"
+mode = "feature" # full / subtypes / feature - what type of data are we passing to the model
+
+metrics_output_folder = f"../data/{mode}/metrics/"
+params_output_folder = f"../data/{mode}/params/"
+
+## using the data from RFE
+if mode == "feature" :
+    input_data = "../data/feature_selection/RandomForestRFE.csv"
+
+## using the full dataset - including healthy controls
+elif mode == "full" :
+    input_data = "../data/TidyData.csv"
+
+## using just the data on the hypertensive patients
+elif mode == "subtypes":
+    input_data = "../data/SubTypeData.csv"
+
+## unsupported mode / typo
+else:
+    raise SystemError(f"The mode of analysis is not supported - received {mode}, expected feature, full or subtypes")
+
 
 #### Loading in the Data ####
-_raw_data = pd.read_csv("../data/SubTypeData.csv")
+_raw_data = pd.read_csv(input_data)
 raw_data = _raw_data.drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
 
 ### Explicitly controlling the folds, so they are the same across all models
@@ -247,5 +264,4 @@ if __name__ == "__main__":
         df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
 
         pipeline.save_as_csv(df, metrics_output_folder)
-
 

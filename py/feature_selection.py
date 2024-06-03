@@ -30,7 +30,7 @@ num_folds = 10
 
 #### Loading in the Data ####
 _raw_data = pd.read_csv("../data/SubTypeData.csv")
-raw_data = _raw_data.drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
+raw_data = _raw_data.copy().drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
 
 ### Explicitly controlling the folds, so they are the same across all models
 folds = StratifiedKFold(n_splits = num_folds, random_state = 1, shuffle = True)

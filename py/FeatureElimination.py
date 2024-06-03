@@ -51,7 +51,11 @@ class FeatureElimination():
 
         ## filter the original data
         columns_to_keep = self.fit.get_support(indices = True)
-        df = raw_df.iloc[:, columns_to_keep]
+        filter_df = raw_df.iloc[:, columns_to_keep].copy()
+
+        ## add on the PseudoID and the Labels to filter_df
+        label_df = raw_df[["PseudoID", "DiseaseSubtypeFull", "DiseaseSubtype"]]
+        df = pandas.concat([filter_df, label_df], axis = 1)
 
         ## write to a csv to use in the full pipeline
         df.to_csv(file_name, index = False)

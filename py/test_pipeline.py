@@ -12,7 +12,8 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import LinearSVC, SVC
 from sklearn.dummy import DummyClassifier
 
-from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
 import os
@@ -26,23 +27,40 @@ print()
 print(f"There appear to be {threads} threads available!!")
 print()
 
-#### Loading in the Data ####
-_raw_data = pd.read_csv("../data/TidyData.csv")
-raw_data = _raw_data.drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
-
-
 #### Other Global Params ####
-num_folds = 10 
-metrics_output_folder = "../data/test/metrics/"
-params_output_folder = "../data/test/params/"
+num_folds = 10
 
+mode = "feature" # full / subtypes / feature - what type of data are we passing to the model
+
+metrics_output_folder = f"../data/{mode}/metrics/"
+params_output_folder = f"../data/{mode}/params/"
+
+## using the data from RFE
+if mode == "feature" :
+    input_data = "../data/feature_selection/RandomForestRFE_Features.csv"
+
+## using the full dataset - including healthy controls
+elif mode == "full" :
+    input_data = "../data/TidyData.csv"
+
+## using just the data on the hypertensive patients
+elif mode == "subtypes":
+    input_data = "../data/SubTypeData.csv"
+
+## unsupported mode / typo
+else:
+    raise SystemError(f"The mode of analysis is not supported - received {mode}, expected feature, full or subtypes")
+
+
+#### Loading in the Data ####
+_raw_data = pd.read_csv(input_data)
+raw_data = _raw_data.drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
 
 ### Explicitly controlling the folds, so they are the same across all models
 folds = StratifiedKFold(n_splits = num_folds, random_state = 1, shuffle = True)
 
 ### Creating the test and train sets
 sss = StratifiedShuffleSplit(n_splits = 1, test_size = .2, random_state = 1)
-
 
 for train_i, test_i in sss.split(raw_data,  raw_data["DiseaseSubtype"]):
     train_set = raw_data.loc[train_i]
@@ -51,15 +69,16 @@ for train_i, test_i in sss.split(raw_data,  raw_data["DiseaseSubtype"]):
 _unscaled_train_data = train_set.drop("DiseaseSubtype", axis = 1)
 train_labels = train_set["DiseaseSubtype"].copy()
 
-
 ### Scale the Features - Only looking at the training data for now, not the testing set
 scaler = StandardScaler()
 columns = _unscaled_train_data.columns
 train_data = scaler.fit_transform(_unscaled_train_data[columns])
 
 
+
 #### Metrics ####
 base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa", "matthew_coef"]
+
 
 metrics = {}
 for base_metric in base_metrics:
@@ -67,6 +86,8 @@ for base_metric in base_metrics:
     metric.generate_scorer_func()
     for key, value in metric.scorer_func.items():
         metrics[key] = value
+
+
 
 
 #### LogisticRegression ####
@@ -230,5 +251,4 @@ if __name__ == "__main__":
         df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
 
         pipeline.save_as_csv(df, metrics_output_folder)
-
 
