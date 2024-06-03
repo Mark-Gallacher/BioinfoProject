@@ -1,0 +1,13 @@
+model_id,param,value
+LSCM-1,C,1
+LSCM-1,loss,hinge
+LSCM-1,penalty,l2
+LSCM-2,C,1
+LSCM-2,loss,squared_hinge
+LSCM-2,penalty,l2
+LSCM-3,C,16
+LSCM-3,loss,hinge
+LSCM-3,penalty,l2
+LSCM-4,C,16
+LSCM-4,loss,squared_hinge
+LSCM-4,penalty,l2
