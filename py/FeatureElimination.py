@@ -47,7 +47,7 @@ class FeatureElimination():
 
 
         ## define the name of the file, use the dir provided and the model name
-        file_name = self.out_dir + "/" + self.model_name
+        file_name = self.out_dir + "/" + self.model_name + ".csv"
 
         ## filter the original data
         columns_to_keep = self.fit.get_support(indices = True)
