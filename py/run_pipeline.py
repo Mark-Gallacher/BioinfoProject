@@ -37,7 +37,7 @@ params_output_folder = f"../data/{mode}/params/"
 
 ## using the data from RFE
 if mode == "feature" :
-    input_data = "../data/feature_selection/RandomForestRFE.csv"
+    input_data = "../data/feature_selection/RandomForestRFE_Features.csv"
 
 ## using the full dataset - including healthy controls
 elif mode == "full" :
