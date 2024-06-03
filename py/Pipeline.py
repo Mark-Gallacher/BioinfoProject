@@ -83,8 +83,8 @@ class Pipeline():
 
         return self.metric_dict
 
-    def run_gridsearch(self, X, y) -> dict:
-        """Runs the GridSearchCV defined in the Model class.
+    def run_cv(self, X, y) -> dict:
+        """Runs the GridSearchCV or RFECV defined in the Model class.
         Returns the dictionary of cv_results_
 
         This has a side effect of updating the values inside metric_dict["id"]
@@ -115,8 +115,10 @@ class Pipeline():
         """ Generates the Pandas.DataFrame after running the GridSearchCV. 
         With details of the model(s) and the metric(s) in the column.
         """
-        _results = self.run_gridsearch(X, y)
+        ## generate the results, so we can extract the relevant values later
+        _results = self.run_cv(X, y)
 
+        ## the output is a dictionary, stored in self.metric_dict
         self.parse_cv_results(_results)
 
         # print(self.metric_dict)
@@ -133,11 +135,13 @@ class Pipeline():
         i.e.
         - ~/project/data/LogisticRegression.csv
         """
+        ## check if the path already indicates a folder
         if folder.endswith("/"):
             folder = folder.rstrip("/")
 
 
         try: 
+
             df.to_csv(f"{folder}/{self.model_name}.csv", index = False)
 
         except Exception as e:
