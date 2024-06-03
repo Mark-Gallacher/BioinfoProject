@@ -101,7 +101,7 @@ main() {
             } \
             || {
                 echo "Directory does not seem to exist - ${folder}"; \
-                #exit 1;
+                exit 1;
                 }
 
 

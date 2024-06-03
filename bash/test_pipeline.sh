@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --account=none
-#SBATCH --job-name=py-pipeline  # create a short name for your job
+#SBATCH --job-name=test-pipeline  # create a short name for your job
 #SBATCH --partition="nodes"     # we are using CPU nodes - don't change this
 #SBATCH --time=0-01:00:00       # how long do we expect this job to run?
 #SBATCH --mem=128G              # how much memory do we want?
@@ -38,7 +38,7 @@ fi
 
 cd ${py_script_home}
 
-python3 "run_pipeline.py" \
+python3 "test_pipeline.py" \
     && echo "Python Script appears to ran without errors" \
     || echo "Python Script appears to have ran into errors!!"
 
@@ -54,8 +54,4 @@ then
 
 fi
 
-bash ${bash_script_home}/concatenate.sh "features" \
-    && echo "CSV files were concatenated" \
-    || echo "Error while concatenating"
-
-echo "End of Script"
+echo "Done"
