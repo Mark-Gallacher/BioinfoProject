@@ -22,11 +22,9 @@ class Pipeline():
     def init_metric_dict(self) -> dict:
         """Initialised the metric_dict by injecting the model name and all the ids (contained in a list.)
         """
-        if len(self.model_class.trained_params) < 1:
-            models_id = []
         
-        else:
-            models_id = self.model_class.generate_ids()
+        ## the generate_ids handles the absense of hyperparametres
+        models_id = self.model_class.generate_ids()
 
         metric_dict = {
                 "model_type" : self.model_name,
@@ -95,6 +93,7 @@ class Pipeline():
                         y = y, 
                         metrics = self.metric_spec
                         )
+
         except Exception as e:
         
             print(f"Issue doing cross validation! \nModel: {self.model_name} \n - Error: {e}")
@@ -103,13 +102,8 @@ class Pipeline():
         ## Update the Metric Dictionary
         self.metric_dict["id"] = self.model_class.generate_ids()
 
-        ## check if we preformed gridsearch or simple cross_validation
-        if self.model_class.trained_params:
-            
-            return _cv.cv_results_
-
-        else:
-            return _cv
+        
+        return _cv
 
     def generate_metric_dataframe(self, X, y) -> pd.DataFrame:
         """ Generates the Pandas.DataFrame after running the GridSearchCV. 

@@ -115,6 +115,8 @@ class Model():
         self.folds = folds
         self.cores = n_jobs
 
+
+
     def cross_validate(self, X, y, metrics:dict) -> dict:
 
         ## this is true if the dictionary is not empty
@@ -131,25 +133,40 @@ class Model():
                 n_jobs = self.cores)
 
                 cv_ = cv.fit(X, y)
-            
+           
+                ## extract the params used in the cv
                 self.trained_params = cv_.cv_results_["params"]
+
+                ## return a dictionary of the metric results - so it can be parsed
+                return cv_.cv_results_
             
             except Exception as e:
                 print(f"Issue when running GridSearchCV!!\nModel: {self.model_name} \nError: {e}")            
                 raise SystemExit(1)
 
-        ## if the params dictionary is empy - no need for GridSearch
+
+
+        ## if the params dictionary is empty - no need for GridSearch
         else:
             
-            cv_:dict = cross_validate(
-                    estimator = self.model, 
-                    X = X, 
-                    y = y, 
-                    cv = self.folds, 
-                    scoring = metrics, 
-                    n_jobs = self.cores)
+            try:
 
-        return cv_
+                cv_:dict = cross_validate(
+                        estimator = self.model, 
+                        X = X, 
+                        y = y, 
+                        cv = self.folds, 
+                        scoring = metrics, 
+                        n_jobs = self.cores)
+
+                ## return a dictionary of the metric results - so it can be parsed
+                return cv_
+
+            except Exception as e:
+                print(f"Issue when running cross_validate!!\nModel: {self.model_name} \nError: {e}")            
+                raise SystemExit(1)
+
+
 
     def generate_ids(self):
         """ Generates IDs for the individual folds for each model. 
