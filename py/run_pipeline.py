@@ -54,7 +54,7 @@ else:
 
 #### Loading in the Data ####
 _raw_data = pd.read_csv(input_data)
-raw_data = _raw_data.drop(["DiseaseSubtypeFull", "PseudoID"], axis = 1)
+raw_data = _raw_data.drop(["DiseaseSubtype", "PseudoID"], axis = 1)
 
 ### Explicitly controlling the folds, so they are the same across all models
 folds = StratifiedKFold(n_splits = num_folds, random_state = 1, shuffle = True)
@@ -62,12 +62,12 @@ folds = StratifiedKFold(n_splits = num_folds, random_state = 1, shuffle = True)
 ### Creating the test and train sets
 sss = StratifiedShuffleSplit(n_splits = 1, test_size = .2, random_state = 1)
 
-for train_i, test_i in sss.split(raw_data,  raw_data["DiseaseSubtype"]):
+for train_i, test_i in sss.split(raw_data,  raw_data["DiseaseSubtypeFull"]):
     train_set = raw_data.loc[train_i]
     test_set = raw_data.loc[test_i]
 
-_unscaled_train_data = train_set.drop("DiseaseSubtype", axis = 1)
-train_labels = train_set["DiseaseSubtype"].copy()
+_unscaled_train_data = train_set.drop("DiseaseSubtypeFull", axis = 1)
+train_labels = train_set["DiseaseSubtypeFull"].copy()
 
 ### Scale the Features - Only looking at the training data for now, not the testing set
 scaler = StandardScaler()
