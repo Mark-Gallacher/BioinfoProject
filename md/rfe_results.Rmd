@@ -1,0 +1,65 @@
+---
+title: "Recurcive Feature Elimination"
+author: '2466057'
+date: "2024-06-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(tidyverse)
+library(here)
+
+
+source(here("r/graph_functions.R"))
+theme_set(report_theme())
+
+```
+
+```{r}
+raw_rf_df <- read_csv(here("data/feature_selection/RandomForestRFE.csv"))
+raw_gb_df <- read_csv(here("data/feature_selection/GradientBoostingRFE.csv"))
+raw_lg_df <- read_csv(here("data/feature_selection/LogisticRegressionRFE.csv"))
+
+raw_df <- bind_rows(raw_rf_df, raw_gb_df, raw_lg_df)
+```
+
+```{r}
+df <- raw_df |> 
+  mutate(
+    fold = str_extract(id, "\\d+$"),
+    model = str_extract(id, "^[A-Z]+"),
+    rfe_model = str_extract(id, "([A-Z]+-)(\\d+)(-\\d+)", group = 2),
+    rfe_model = as.numeric(rfe_model)
+         ) |> 
+  summarise(.by = c(rfe_model, model), 
+            mean_score = mean(score), 
+            sd_score = sd(score)
+            )
+```
+
+
+```{r}
+#| fig.height = 8, 
+#| fig.height = 10 
+  
+  
+df |> 
+  ggplot(aes(x = rfe_model, y = mean_score, colour = model)) + 
+  geom_point(size = 1.5) +
+  # geom_line() +
+  geom_linerange(aes(ymin = mean_score - sd_score, ymax = mean_score + sd_score), alpha = .5) +
+  facet_grid(~model)+
+  labs(x = "Number of Features", 
+       y = "Mean Balanced Accuracy", 
+       title = "Balanced Accuracy across Various Classifers in RFE", 
+       caption = "Recursive Feature Elimination (RFE) fit a model to data and removes the weakest or least informative feature. \nThis technique has a tendency to be sensetive to the model used, so multiple models are compared to see general patterns. \nThe three models, from left to right, are Gradient Boosting Trees (GB), Logistic Regression (LG) and Randon Forest (RF).") +
+  theme(plot.caption = element_text(hjust = 0))
+
+
+```
+
