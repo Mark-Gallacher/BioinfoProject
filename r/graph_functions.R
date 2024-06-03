@@ -4,6 +4,32 @@ average_colours = c("Macro" = "#FF2E00", "Micro" = "#FEA82F", "Weighted" = "#544
 subtype_colours = c("HV" = "#177e89", "PA" = "#084c61", "CS" = "#db3a34", "PHT" = "#ffc857", "PPGL" = "#323031")
 
 
+metric_colours = c(
+  "f1" = "#03045e", 
+  "f2" =  "#0077b6", 
+  "f3" =  "#00b4d8", 
+  "f4" =  "#90e0ef",
+  "accuracy" = "#780000", 
+  "balanced" = "#c1121f", 
+  "cohen" = "#1b4332", 
+  "matthew" = "#588157", 
+  "precision" = "#3d0066", 
+  "recall" = "#c86bfa"
+  )
+
+metric_labels = c(
+  "f1" = "F1 Score", 
+  "f2" = "F2 Score", 
+  "f3" = "F3 Score", 
+  "f4" = "F4 Score", 
+  "accuracy" = "Accuracy",
+  "balanced" = "Balanced Accuracy", 
+  "cohen" = "Cohen Kappa", 
+  "matthew" = "MCC", 
+  "precision" = "Precision", 
+  "recall" = "Recall"
+)
+
 
 ##### Custom report theme to use for report
 report_theme <- function(base_size = 20){

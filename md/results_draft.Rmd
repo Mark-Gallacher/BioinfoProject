@@ -1,0 +1,146 @@
+---
+title: "Results (Draft)"
+author: '2466057'
+date: "2024-06-03"
+output: html_document
+css: style.css
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = TRUE, 
+                      warning = TRUE, 
+                      collapse = TRUE, 
+                      fig.width = 10, 
+                      fig.height = 7,
+                      fig.path = "./HTML/fig/", 
+                      comment = "")
+
+```
+
+```{r library and functions}
+#| message = FALSE, 
+#| warning = FALSE, 
+#| error = FALSE 
+
+library(tidyverse)
+library(here)
+
+## script to load in functions and variables (including data)
+source(here("r/setup_feature.R"))
+
+## define a custom ggplot theme - set as default
+theme_set(report_theme(base_size = 10))
+
+## all of the models generated
+all_names
+```
+
+
+
+```{r}
+## merge the metric dataframes together
+metrics_df <- merge_metric_dfs()
+
+## summarise the metrics by the model_code, i.e. across their models for each of K-folds
+metric_code <- generate_rel_metrics(metric_df, "model_code")
+
+## summarise the metrics by the moodel_id, i.e across the K-folds (preserving different model hyperparameters)
+metric_id <- generate_rel_metrics(metric_df, "model_id") |> 
+  mutate(model_code = str_extract(model_id, "[A-Z]+"))
+```
+
+```{r}
+point_size = 2.5
+main_line_width = 2
+minor_line_width = 1.5
+
+
+metric_code |> 
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |>
+  ggplot(aes(x = model_code, y = rel_mean, 
+             colour = metric_type, 
+             group = metric))+
+  geom_point(size = point_size, shape = 15, alpha = .8) +
+  geom_line(linewidth = main_line_width, show.legend = F, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width) +
+  scale_x_discrete("Model Type") +
+  scale_y_continuous("Relatiive Mean Score") +
+  ggtitle("Comparing Metric Type Across Models") +
+  scale_colour_manual("Metric", 
+                      values = metric_colours, 
+                      labels = metric_labels, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+  
+
+metric_code |>
+  filter(model_code != "DUM") |>
+  parse_metric_column() |>
+  ggplot(aes(x = model_code, y = rel_mean,
+             colour = average_type,
+             group = metric))+
+  geom_point(size = point_size, shape = 15, alpha = .8) +
+  geom_line(linewidth = main_line_width, show.legend = F, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width) +
+  scale_x_discrete("Model Type") +
+  scale_y_continuous("Relatiive Mean Score") +
+  ggtitle("Comparing Averaging Method Type Across Models") +
+  scale_colour_manual("Averaging Method",
+                      values = average_colours,
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+```
+
+```{r}
+metric_id |>   
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = metric_type, group = metric))+
+  geom_point(size = point_size / 3, shape = 15, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width / 3) +
+  geom_vline(xintercept = 1, linewidth = minor_line_width / 3) +
+  scale_x_continuous("Relative Mean Score") +
+  scale_y_continuous("Relatiive SD Score") +
+  ggtitle("Comparing Metric Type Across Models") +
+  scale_colour_manual("Metric", 
+                      values = metric_colours, 
+                      labels = metric_labels, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+
+metric_id |>   
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = average_type, group = metric))+
+  geom_point(size = point_size / 3, shape = 15, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width / 3) +
+  geom_vline(xintercept = 1, linewidth = minor_line_width / 3) +
+  scale_x_continuous("Relative Mean Score") +
+  scale_y_continuous("Relatiive SD Score") +
+  ggtitle("Comparing Averaging Method Across Models") +
+  scale_colour_manual("Averaging Method", 
+                      values = average_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+
+metric_id |>   
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = model_code, group = metric))+
+  geom_point(size = point_size / 3, shape = 15, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width / 3) +
+  geom_vline(xintercept = 1, linewidth = minor_line_width / 3) +
+  scale_x_continuous("Relative Mean Score") +
+  scale_y_continuous("Relatiive SD Score") +
+  ggtitle("Cluster of Metrics Across Models") +
+  scale_colour_manual("Model", 
+                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
+                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
+                                 "SVM" = "#577590"), 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+```
+

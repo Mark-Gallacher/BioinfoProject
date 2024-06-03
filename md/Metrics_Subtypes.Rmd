@@ -20,48 +20,18 @@ theme_set(report_theme())
 ```
 
 ```{r}
-metrics_df <- all_codes |> 
-  map(get_model_from_code) |> 
-  bind_rows() |> 
-  select(model_type:metric_type) |> 
-  mutate(fold = str_extract(id, "[0-9]+$"))
+## merge the metric dataframes together
+metrics_df <- merge_metric_dfs()
+
+## summarise the metrics by the model_code, i.e. across their models for each of K-folds
+metric_code <- generate_rel_metrics(metric_df, "model_code")
+
+## summarise the metrics by the moodel_id, i.e across the K-folds (preserving different model hyperparameters)
+metric_id <- generate_rel_metrics(metric_df, "model_id") |> 
+  mutate(model_code = str_extract(model_id, "[A-Z]+"))
+
 ```
 
-
-```{r}
-## find the mean for the model type - ie the model code - summing over folds and models
-summary_code <- metrics_df |>
-  summarise(.by = model_code, 
-            mean_code = mean(score), 
-            sd_code = sd(score))
-
-## find the mean for each model - ie the model_id - summing over folds
-summary_id <- metrics_df |>
-  summarise(.by = model_id, 
-            mean_id = mean(score), 
-            sd_id = sd(score))
-  
-```
-
-```{r}
-metric_code <- metrics_df |> 
-  inner_join(summary_code, by = "model_code") |> 
-  summarise(.by = c(metric, model_code), 
-            mean_metric = mean(score),
-            sd_metric = sd(score), 
-            rel_mean = mean_metric / mean_code,
-            rel_sd = sd_metric / sd_code,
-            )
-
-metric_id <- metrics_df |> 
-  inner_join(summary_id, by = "model_id") |> 
-  summarise(.by = c(metric, model_id, model_code), 
-            mean_metric = mean(score),
-            sd_metric = sd(score), 
-            rel_mean = mean_metric / mean_id,
-            rel_sd = sd_metric / sd_id,
-            )
-```
 
 
 ```{r}

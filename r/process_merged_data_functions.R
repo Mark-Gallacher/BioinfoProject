@@ -260,3 +260,45 @@ generate_all_tibbles <- function(metrics, params){
     }, .progress = "Generating Tibbles"
   )
 }
+
+
+
+merge_metric_dfs <- function(){
+  
+  if (!exists("all_codes")){ 
+    stop(paste0("Please ensure you have created the all_codes object!"))
+  }
+  
+  all_codes |> 
+    purrr::map(get_model_from_code) |> 
+    dplyr::bind_rows() |> 
+    dplyr::select(model_type:metric_type) |> 
+    dplyr::mutate(fold = stringr::str_extract(id, "[0-9]+$"))
+  
+}
+
+
+generate_rel_metrics <- function(metric_df, group){
+  
+  quo_group <-  rlang::enquo(group)
+  expr_group <-  rlang::enexpr(group)
+  
+  .summary_df <- metrics_df |>
+    dplyr::summarise(.by = !!quo_group, 
+                     mean_group = mean(score, na.rm = TRUE),
+                     sd_group = sd(score, na.rm = TRUE))
+  
+  .output <- metrics_df |> 
+    dplyr::summarise(.by = c(metric, !!quo_group),
+                     mean_metric = mean(score, na.rm = TRUE),
+                     sd_metric = sd(score, na.rm = TRUE)) |> 
+    dplyr::inner_join(.summary_df, by = expr_group) |>
+    dplyr::mutate(rel_mean = mean_metric / mean_group,
+                  rel_sd = sd_metric / sd_group
+    )
+  
+  return(.output)
+  
+}
+
+
