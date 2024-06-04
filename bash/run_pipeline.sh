@@ -18,6 +18,10 @@
 
 ############# CODE #############
 
+mode="full"
+
+echo "Mode of Analysis is ${mode}"
+
 project_home="/users/2466057g/project"
 env_home="${project_home}/proj_env"
 py_script_home="${project_home}/py"
@@ -38,7 +42,7 @@ fi
 
 cd ${py_script_home}
 
-python3 "run_pipeline.py" \
+python3 "run_pipeline.py" --mode "${mode}" \
     && echo "Python Script appears to ran without errors" \
     || echo "Python Script appears to have ran into errors!!"
 
@@ -54,7 +58,7 @@ then
 
 fi
 
-bash ${bash_script_home}/concatenate.sh "feature" \
+bash ${bash_script_home}/concatenate.sh "${mode}" \
     && echo "CSV files were concatenated" \
     || echo "Error while concatenating"
 
