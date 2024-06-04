@@ -88,7 +88,7 @@ for base_metric in base_metrics:
         metrics[key] = value
 
 
-
+c_values = [0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
 
 #### LogisticRegression ####
 ## penalty was None but that generated an error??
@@ -98,10 +98,10 @@ log_reg_params = Hyperparametres(
                 params = [ 
                 {"penalty" : [ "none" ]},
                 {"penalty" : ["l1", "l2"], 
-                "C" : [1, 2, 4, 8, 16]},
+                "C" : c_values},
                 {"penalty" : ["elasticnet"], 
-                 "C" : [1, 2, 4, 8, 16], 
-                 "l1_ratio" : [.2, .4, .6, .8]}
+                "C" : c_values, 
+                 "l1_ratio" : [.2, .4, .6, .8, 1]}
                 ])
 
 ## Define the Type of Model with the Hyperparametres
@@ -190,10 +190,9 @@ svc_params = Hyperparametres(
          model_code = "SVM", 
          params = [
             {"kernel" : ["linear"],
-             "C" : [1, 2, 4, 8, 16]},
- 
+             "C" : c_values }, 
              {"kernel": ["rbf", "poly"],
-             "C" : [1, 2, 4, 8, 16], 
+             "C" : c_values, 
              "gamma" : ["scale", "auto"]}
             ])
 
@@ -212,7 +211,7 @@ svc_params_2 = Hyperparametres(
             params = {
             "penalty" : ["l2"], 
             "loss" : ["hinge", "squared_hinge"],
-             "C" : [1, 2, 4, 8, 16], 
+             "C" : c_values , 
         })
 
 svc_model_2 = Model(
