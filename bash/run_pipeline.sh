@@ -54,7 +54,7 @@ then
 
 fi
 
-bash ${bash_script_home}/concatenate.sh "features" \
+bash ${bash_script_home}/concatenate.sh "feature" \
     && echo "CSV files were concatenated" \
     || echo "Error while concatenating"
 

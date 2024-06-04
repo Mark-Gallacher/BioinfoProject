@@ -23,12 +23,12 @@ threads = os.cpu_count()
 if threads is None:
     threads = 1
 
-print()
-print(f"There appear to be {threads} threads available!!")
-print()
+print(f"\nThere appear to be {threads} threads available!!\n")
 
 #### Other Global Params ####
-num_folds = 10
+num_folds = 5
+
+print(f"Using K-fold Cross Validation with a K of {num_folds}\n")
 
 mode = "feature" # full / subtypes / feature - what type of data are we passing to the model
 
@@ -37,7 +37,7 @@ params_output_folder = f"../data/{mode}/params/"
 
 ## using the data from RFE
 if mode == "feature" :
-    input_data = "../data/feature_selection/RandomForestRFE_Features.csv"
+    input_data = "../data/feature_selection/GradientBoostingRFE_Features.csv"
 
 ## using the full dataset - including healthy controls
 elif mode == "full" :
@@ -51,6 +51,7 @@ elif mode == "subtypes":
 else:
     raise SystemError(f"The mode of analysis is not supported - received {mode}, expected feature, full or subtypes")
 
+print(f"Using data from the folder: {input_data}\n")
 
 #### Loading in the Data ####
 _raw_data = pd.read_csv(input_data)
