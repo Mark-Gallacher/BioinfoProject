@@ -148,8 +148,8 @@ rf_params = Hyperparametres(
         model_name = "RandomForest", 
         model_code = "RF", 
         params = { 
-        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200, 250], 
-        "min_samples_split" : [2, 4, 8, 12, 16, 30, 50], 
+        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200], 
+        "min_samples_split" : [2, 4, 8, 12, 16, 30], 
         "max_depth" : [2, 4, 6, 8, 10, 12, 14, None]
             })
 
@@ -168,10 +168,10 @@ gb_params = Hyperparametres(
         model_name = "GradientBoosting", 
         model_code = "GB", 
         params = {
-        "learning_rate" : [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25], 
-        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200, 250],
-        "min_samples_split" : [2, 4, 8, 12, 16, 30, 50], 
-        "max_depth" : [2, 4, 6, 8, 10, None]
+        "learning_rate" : [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4], 
+        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200],
+        "min_samples_split" : [2, 4, 8, 12, 16, 30], 
+        "max_depth" : [2, 4, 6, 8, 10, 12, 14, None]
             })
 
 gb_model = Model(model = GradientBoostingClassifier, 
