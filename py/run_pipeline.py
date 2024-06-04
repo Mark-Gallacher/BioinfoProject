@@ -88,8 +88,15 @@ for base_metric in base_metrics:
     for key, value in metric.scorer_func.items():
         metrics[key] = value
 
-
+#### Some common hyperparameters
 c_values = [0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
+
+estimators = [50, 100, 400, 800]
+min_samples_splits = [5, 20, 40]
+min_samples_leaf = [2, 5, 10]
+max_features = [None, "sqrt"]
+max_depth = [None, 3, 10, 30]
+
 
 #### LogisticRegression ####
 ## penalty was None but that generated an error??
@@ -149,17 +156,19 @@ rf_params = Hyperparametres(
         model_name = "RandomForest", 
         model_code = "RF", 
         params = { 
-        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200], 
-        "min_samples_split" : [2, 4, 8, 12, 16, 30], 
-        "max_depth" : [2, 4, 6, 8, 10, 12, 14, None]
+        "n_estimators" : estimators, 
+        "min_samples_split" : min_samples_splits,
+        "min_samples_leaf" : min_samples_leaf,
+        "max_features" : max_features,
+        "max_depth" : max_depth
             })
+
+
 
 rf_model = Model(model = RandomForestClassifier, 
                  params = rf_params, 
                  n_jobs = threads, 
-                 folds = folds, 
-                 min_samples_leaf = 1, 
-                 max_features = "sqrt")
+                 folds = folds)
 
 
 
@@ -169,18 +178,18 @@ gb_params = Hyperparametres(
         model_name = "GradientBoosting", 
         model_code = "GB", 
         params = {
-        "learning_rate" : [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4], 
-        "n_estimators" : [10, 25, 50, 75, 100, 125, 150, 200],
-        "min_samples_split" : [2, 4, 8, 12, 16, 30], 
-        "max_depth" : [2, 4, 6, 8, 10, 12, 14, None]
+        "learning_rate" : [0.01, 0.1, 0.25, 0.5], 
+        "n_estimators" : estimators, 
+        "min_samples_split" : min_samples_splits,
+        "min_samples_leaf" : min_samples_leaf,
+        "max_features" : max_features,
+        "max_depth" : max_depth
             })
 
 gb_model = Model(model = GradientBoostingClassifier, 
                  params = gb_params, 
                  n_jobs = threads, 
                  folds = folds, 
-                 max_features = "sqrt", 
-                 min_samples_leaf = 1
                  )
 
 
@@ -204,16 +213,20 @@ svc_model = Model(
          folds = folds, 
          max_iter = 10000, 
          cache_size = 2000, 
-         tol = 1e-4)
+         tol = 1e-4,
+         class_weight = 'balanced')
 
 svc_params_2 = Hyperparametres(
             model_name = "LinearSVC", 
             model_code = "LSCM", 
-            params = {
-            "penalty" : ["l2"], 
-            "loss" : ["hinge", "squared_hinge"],
-             "C" : c_values , 
-        })
+            params = [
+                {"penalty" : ["l2"], 
+                 "loss" : ["hinge", "squared_hinge"],
+                 "C" : c_values}, 
+                {"penalty" : ["l1"], 
+                 "loss" : ["squared_hinge"],
+                 "C" : c_values}
+                ])
 
 svc_model_2 = Model(
             model = LinearSVC, 
@@ -222,8 +235,9 @@ svc_model_2 = Model(
             folds = folds, 
             max_iter = 10000, 
             dual = True, 
-            tol = 1e-4
-            )
+            tol = 1e-4,
+            class_weight = 'balanced')
+            
 
 
 
