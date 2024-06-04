@@ -75,7 +75,7 @@ save_graph <- function(graph, name, path = "", width = 8, height = 10){
 plot_hyperparam_1n_1c <- function(code, param1, param2){
   
   .x_string <- rlang::as_string(rlang::ensym(param1))
-  .x_title <- stringr::str_replace(.x_string, pattern = "_", replacement = " ") |> 
+  .x_title <- stringr::str_replace_all(.x_string, pattern = "_", replacement = " ") |> 
     stringr::str_to_title()
   
   .title <- all_names[code]
@@ -86,7 +86,6 @@ plot_hyperparam_1n_1c <- function(code, param1, param2){
                colour = average_type, 
                group = average_type))+
     geom_point(alpha = .8, size = 1.5, show.legend = F) +
-    # geom_smooth(se = F, linewidth = 2) +
     stat_summary(fun = mean, geom = "line", linewidth = 2) +
     scale_x_continuous(.x_title) + 
     scale_y_continuous("Mean Metric Score") + 
@@ -95,11 +94,11 @@ plot_hyperparam_1n_1c <- function(code, param1, param2){
     facet_wrap(vars({{ param2 }}))
 }
 
-## Assumes the first param is numeric and the second is categorical
-plot_hyperparam_1n <- function(code, param1){
+## Assumes the param is numeric
+plot_hyperparam_1n <- function(code, param1, log_x = FALSE){
   
   .x_string <- rlang::as_string(rlang::ensym(param1))
-  .x_title <- stringr::str_replace(.x_string, pattern = "_", replacement = " ") |> 
+  .x_title <- stringr::str_replace_all(.x_string, pattern = "_", replacement = " ") |> 
     stringr::str_to_title()
   
   .title <- all_names[code]
@@ -109,15 +108,37 @@ plot_hyperparam_1n <- function(code, param1){
                y = mean_score, 
                colour = average_type, 
                group = average_type))+
-    geom_point(alpha = .5, size = 1.5, show.legend = T) +
+    geom_jitter(alpha = .5, size = 1.5, show.legend = T) +
     stat_summary(fun = mean, geom = "line", linewidth = 2) +
     scale_x_continuous(.x_title) + 
     scale_y_continuous("Mean Metric Score") + 
     scale_colour_manual("Average Method", values = average_colours) + 
     ggtitle(paste0("Hyperparameters for ", .title))
+  
+  }
+
+## assume the param is categorical
+plot_hyperparam_1c <- function(code, param1){
+  
+  .x_string <- rlang::as_string(rlang::ensym(param1))
+  .x_title <- stringr::str_replace_all(.x_string, pattern = "_", replacement = " ") |> 
+    stringr::str_to_title()
+  
+  .title <- all_names[code]
+  
+  get_summary_from_code(code) |> 
+    ggplot(aes(x = {{ param1 }}, 
+               y = mean_score, 
+               colour = average_type, 
+               group = average_type))+
+    geom_jitter(alpha = .5, size = 1.5, show.legend = T) +
+    stat_summary(fun = mean, geom = "line", linewidth = 2) +
+    scale_x_discrete(.x_title) + 
+    scale_y_continuous("Mean Metric Score") + 
+    scale_colour_manual("Average Method", values = average_colours) + 
+    ggtitle(paste0("Hyperparameters for ", .title))
+  
 }
-
-
 
 
 

@@ -50,12 +50,12 @@ library(ggcorrplot)
 
 corr <- metrics |> 
   select(where(is.numeric)) |> 
+  rename_with( ~ str_replace_all(., "_", " ") |> str_to_title()) |> 
   scale() |> 
   cor()
 
 ggcorrplot(corr, 
            type = "lower", 
-           # hc.order = T, 
            lab = TRUE)
 
 ```

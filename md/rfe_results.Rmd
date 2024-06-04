@@ -1,12 +1,27 @@
 ---
-title: "Recurcive Feature Elimination"
+title: "Recursive Feature Elimination"
 author: '2466057'
 date: "2024-06-03"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    css: "style.css"
+    df_print: "paged"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      collapse = TRUE, 
+                      fig.width = 12, 
+                      fig.height = 8,
+                      fig.path = "./figures/rfe/", 
+                      comment = "")
+
 ```
 
 ```{r}
@@ -14,11 +29,20 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 
-
 source(here("r/graph_functions.R"))
 theme_set(report_theme())
 
 ```
+
+## Recursive Feature Elimination
+
+---
+
+Recursive Feature Elimination (RFE) is used when multiple features are correlated with one another or there are several features that offer minimal information to the model. Instead of guessing which features to remove, RFE trains a model then sequentially removes a feature which was the least informative to the model. For example, in multiple linear regression, this would be the variable with a coefficient closest to zero. The process begins with all the variables in the data and concludes with only one. Then, using a defined metric, the optimal number of features are selected by simply looking at the maximum metric value. This generally results in some improvements as the correlation between the features is reduced.
+
+Through three different models (Random Forest, Gradient Boosted Trees and Logistic Regression), the RFE procedure was completed with a 5-fold cross validation to obtain more robust metrics. The metric chosen to determine the optimal features was balanced accuracy. (the confusion matrix of each model could be obtained so all the metrics could be calculated). 
+
+Our data has 178 features, as we are looking at the 178 microRNA expression levels. Data about the patients were not used in this analysis. 
 
 ```{r}
 raw_rf_df <- read_csv(here("data/feature_selection/RandomForestRFE.csv"))
@@ -44,8 +68,7 @@ df <- raw_df |>
 
 
 ```{r}
-#| fig.height = 8, 
-#| fig.height = 10 
+#| fig.cap = "The points represent the mean balanced accuracy while error bars are of the standard deviation from 5-Fold cross validation. Recursive Feature Elimination (RFE) fit a model to data and removes the weakest or least informative feature. This technique has a tendency to be sensetive to the model used, so multiple models are compared to see general patterns. The three models, from left to right, are Gradient Boosting Trees (GB), Logistic Regression (LG) and Randon Forest (RF)."
   
   
 df |> 
@@ -56,10 +79,21 @@ df |>
   facet_grid(~model)+
   labs(x = "Number of Features", 
        y = "Mean Balanced Accuracy", 
-       title = "Balanced Accuracy across Various Classifers in RFE", 
-       caption = "Recursive Feature Elimination (RFE) fit a model to data and removes the weakest or least informative feature. \nThis technique has a tendency to be sensetive to the model used, so multiple models are compared to see general patterns. \nThe three models, from left to right, are Gradient Boosting Trees (GB), Logistic Regression (LG) and Randon Forest (RF).") +
+       title = "Balanced Accuracy across Various Classifers in RFE") +
   theme(plot.caption = element_text(hjust = 0))
 
 
 ```
 
+## Optimal Number of Features
+
+---
+
+```{r}
+df |> 
+  slice_max(by = model, n = 1, order_by = mean_score)
+```
+
+The best number of features are sensitive to the underlying model used in RFE. When we use Logistic Regression, we obtain a balanced accuracy of 57.51% across our folds. Whilst the mean balanced accuracy of Random Forest and Gradient Boosted Trees are very similar, the number of optimal features are 87 and 131 respectively. 
+
+Future Steps would be to explore ensemble RFE - where the base model is a collection of classifiers. This means the optimal number of features are less dependent on a single model. We could create an ensemble of the models we are going to use, for example. 

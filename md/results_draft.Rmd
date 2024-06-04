@@ -2,22 +2,37 @@
 title: "Results (Draft)"
 author: '2466057'
 date: "2024-06-03"
-output: html_document
-css: style.css
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    css: "style.css"
+    df_print: "paged"
 ---
 
 ```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, 
-                      message = TRUE, 
-                      warning = TRUE, 
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
                       collapse = TRUE, 
                       fig.width = 10, 
-                      fig.height = 7,
-                      fig.path = "./HTML/fig/", 
+                      fig.height = 8,
+                      dpi = 120, 
+                      fig.path = "./figures/result_draft/", 
+                      cache.path = "./cache/result_draft/",
                       comment = "")
 
 ```
+
+## Overview
+
+---
+
+Trained 7 machine learning models and one dummy classifier. The latter always predicts the most frequent class. This could provide some meaningful comparisons, for example if we plotted the difference between a model and the dummy. Although it is removed for most graphs for now. 
+
+The seven models, and their 2/3 letter codes are shown below. 
 
 ```{r library and functions}
 #| message = FALSE, 
@@ -34,7 +49,11 @@ source(here("r/setup_feature.R"))
 theme_set(report_theme(base_size = 10))
 
 ## all of the models generated
-all_names
+
+for (name in names(all_names)){
+  cat(paste0(name, " - ", all_names[name], "\n"))
+}
+
 ```
 
 
@@ -50,6 +69,24 @@ metric_code <- generate_rel_metrics(metric_df, "model_code")
 metric_id <- generate_rel_metrics(metric_df, "model_id") |> 
   mutate(model_code = str_extract(model_id, "[A-Z]+"))
 ```
+
+The data consisted of all the hypertensive subtypes (excluding the healthy control), and not all the microRNA variables were used. First, they were filtered via Recursive Feature Elimination (RFE), where the base model was a Gradient Boosted Tree. This left 131 features, although the RFE could be improved by using an ensemble of various models, as we run the risk of over-fitting the Gradient Boosted Trees. For example, when we used Random Forest for RFE, it selected only 87 features. This is not an insignificant difference and should be explored in a bit more detail (for a later date though).  
+
+Six of the seven types of models (not Gaussian Naive Bayes) were trained across a wide range of hyperparameters to obtain a collect of models of varying quality. Each model was evaluated with a battery of metrics which can be compared in two main groups. Firstly, we can look at the **metric type**, like precision, recall, F1-score or accuracy. Secondly, we could look at how it generalises to the multiclass problem, either through Micro, Macro or Weighted averaging of the values from a confusion matrix, i.e the **averaging method** . Some metrics natively handle the multiclass setting, like accuracy, Matthew Correlation Coefficient (MCC) and Cohen Kappa. Here, these are described to have an averaging method of "None", although "NA" might be more clear. More precisely, most metrics are formed as a combination of an *averaging method* and a *metric type*, like Macro Precision, Micro F1-score. 
+
+Micro-averaging, which sums the False Positives, True Positive (TP), etc, across each class then performs the calculation. For recall, all the True positives are summed and then divided by the sum of True Positives and False Negatives (FN), ie TP / (TP + FN). In comparison, Macro-averaging calculates the metric for each class, then obtains the means. Concretely, Macro-Recall would find the recall for each class first, then find the mean. 
+
+## Comparison of Metrics relative to the Mean {.tabset}
+
+---
+
+In order to compare the metrics to each other across the various models, the mean score of each model was found then obtained metric was divided by this mean. Consequently, a relative value of 1 indicates that metric is identical to the mean while values less than one indicate it is typically smaller than the mean (likely suggesting it is more conservative). Values greater than one can be interpreted as the opposite, indicating a more optimistic metric in general.
+
+On the X-axis we have all of model type and on the Y-axis we have the relative mean metric score. The values are coloured by their metric type in the first graph and their averaging method in the second. The latter has much clearer grouping, indicating the averaging method is very influential and have different levels of optimism/bias. 
+
+It is also worth pointing out that the most conservative metrics appear to be MCC and Cohen Kappa, which naturally generalise to the multiclass setting. 
+
+### Comparison of Metric Type
 
 ```{r}
 point_size = 2.5
@@ -74,8 +111,11 @@ metric_code |>
                       labels = metric_labels, 
                       guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
   report_theme(base_size = 13)
-  
+```
 
+### Comparison of Averaging Method
+
+```{r}
 metric_code |>
   filter(model_code != "DUM") |>
   parse_metric_column() |>
@@ -87,14 +127,22 @@ metric_code |>
   geom_hline(yintercept = 1, linewidth = minor_line_width) +
   scale_x_discrete("Model Type") +
   scale_y_continuous("Relatiive Mean Score") +
-  ggtitle("Comparing Averaging Method Type Across Models") +
+  ggtitle("Comparing Averaging Method Across Models") +
   scale_colour_manual("Averaging Method",
                       values = average_colours,
                       guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
   report_theme(base_size = 13)
 ```
 
-```{r}
+## Comparison of Mean and Standard Deviation of Each Metric {.tabset}
+
+---
+
+### Colour by Metric Type
+
+With the relative mean and relative standard deviation on the X and Y axis, respectively, the metrics scores appear to cluster by their metrics, instead of by the model they came from. 
+
+```{r, cache = TRUE}
 metric_id |>   
   filter(model_code != "DUM") |> 
   parse_metric_column() |> 
@@ -110,7 +158,13 @@ metric_id |>
                       labels = metric_labels, 
                       guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
   report_theme(base_size = 13)
+```
 
+### Colour by Averaging Method
+
+It is quite nice to see the clear clusters in the different the averaging methods. This likely indicates this is an important choice because of how different. 
+
+```{r, cache = TRUE}
 metric_id |>   
   filter(model_code != "DUM") |> 
   parse_metric_column() |> 
@@ -125,7 +179,13 @@ metric_id |>
                       values = average_colours, 
                       guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
   report_theme(base_size = 13)
+```
 
+### Colour by Model Type
+
+This was to illustrate the metrics cluster with values of the same metric rather than from the same model. If they clustered by model then comparisons would likely not be possible. 
+
+```{r, cache = TRUE}
 metric_id |>   
   filter(model_code != "DUM") |> 
   parse_metric_column() |> 
@@ -142,5 +202,107 @@ metric_id |>
                                  "SVM" = "#577590"), 
                       guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
   report_theme(base_size = 13)
+```
+
+## Comparison of Models Using Metrics* {.tabset}
+
+---
+
+> *Note: these graphs are not in their final form
+
+The five folds used in the cross validation are the same across all the models, meaning a comparison is more appropriate compared to if the folds were completely random. It is clear the best type of model is the Gradient Boosted Tree whilst Gaussian Naive Bayes appears the weakest. This could be partially explained by Gradient Boosting having the most number of individual models, due to having several hyperparameters. The hyperparameter tuning of these models have yet to be finished. Currently, a wide range of hyperparameters have been explored but a more narrow and focused scope could improve model performance. 
+
+### Micro Averaging
+
+```{r}
+metrics_df |> 
+  filter(average_type == "Micro", model_code != "DUM") |> 
+  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
+  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
+  ggtitle("Comparison of the Models with Metric with Micro Averaging") +
+  scale_colour_manual("Model", 
+                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
+                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
+                                 "SVM" = "#577590"), 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
+  facet_wrap(~metric_type) +
+  report_theme(14)
+
+```
+
+
+### Macro Averaging
+
+```{r}
+metrics_df |> 
+  filter(average_type == "Macro", model_code != "DUM") |> 
+  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
+  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
+  ggtitle("Comparison of the Models with Metric with Macro Averaging") +
+  scale_colour_manual("Model", 
+                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
+                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
+                                 "SVM" = "#577590"), 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
+  facet_wrap(~metric_type) +
+  report_theme(14)
+
+```
+
+### Weighted Averaging
+
+```{r}
+metrics_df |> 
+  filter(average_type == "Weighted", model_code != "DUM") |> 
+  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
+  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
+  ggtitle("Comparison of the Models with Metric with Weighted Averaging") +
+  scale_colour_manual("Model", 
+                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
+                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
+                                 "SVM" = "#577590"), 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
+  facet_wrap(~metric_type) +
+  report_theme(14)
+
+```
+
+### No Averaging
+
+```{r}
+
+metrics_df |> 
+  filter(average_type == "None", model_code != "DUM") |> 
+  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
+  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
+  ggtitle("Comparison of the Models with Metric without Averaging") +
+  scale_colour_manual("Model", 
+                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
+                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
+                                 "SVM" = "#577590"), 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
+  facet_wrap(~metric_type) +
+  report_theme(14)
+
+```
+
+## Correlation of Metrics
+
+---
+
+```{r}
+library(ggcorrplot)
+
+corr <- metrics |> 
+  select(where(is.numeric)) |> 
+  rename_with( ~ str_replace_all(., "_", " ") |> str_to_title()) |>
+  scale() |>
+  cor(use = "complete.obs")
+
+ggcorrplot(corr, 
+           lab = T, 
+           type = "lower", 
+           title = "Correlation Between All the Metrics")
+
 ```
 

@@ -121,8 +121,10 @@ pivot_param_tibble <- function(params, code){
   
   to_title_chaarcter <- function(x) return(stringr::str_to_title(as.character(x)))
   
-  numeric_hyperparameters <- c("learning_rate", "max_depth", "min_samples_split", "n_estimators", "n_neighbors", "C", "l1_ratio")
-  categoric_hyperparameters <- c("weights", "loss", "penalty", "kernel", "gamma", "None")
+  numeric_hyperparameters <- c("learning_rate", "max_depth", "min_samples_split", 
+                               "min_samples_leaf", "n_estimators", "n_neighbors", "C", "l1_ratio")
+  
+  categoric_hyperparameters <- c("weights", "loss", "penalty", "kernel", "gamma", "None", "max_features")
 
   .replace_list_n <- as.list(setNames(rep(0, length(numeric_hyperparameters)), numeric_hyperparameters))
   .replace_list_c <- as.list(setNames(rep("None", length(categoric_hyperparameters)), categoric_hyperparameters))
