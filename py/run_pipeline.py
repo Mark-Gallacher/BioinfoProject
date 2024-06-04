@@ -1,10 +1,10 @@
+## My Classes
 from Pipeline import Pipeline
 from Model import Model
 from Model import Hyperparametres
 from Metrics import Metric
 
-import pandas as pd
-
+## Models
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -12,28 +12,33 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import LinearSVC, SVC
 from sklearn.dummy import DummyClassifier
 
+## sklearn utils
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
+## misc modules
+import pandas as pd
+import argparse
 import os
 
-threads = os.cpu_count()
+##### ~~~~~~~~~~~~~~~~~~~ #####
+##### Setting up Argparse #####
+##### ~~~~~~~~~~~~~~~~~~~ #####
 
-if threads is None:
-    threads = 1
+input_parse = argparse.ArgumentParser(
+        prog = "microRNA-ML-Pipeline", 
+        description = "Requires one argument, which must be full, subtypes or feature!")
 
-print(f"\nThere appear to be {threads} threads available!!\n")
+input_parse.add_argument("-m", "--mode", 
+                         required = True, 
+                         dest = "mode", 
+                         type = str)
 
-#### Other Global Params ####
-num_folds = 5
+args = input_parse.parse_args()
 
-print(f"Using K-fold Cross Validation with a K of {num_folds}\n")
+mode = args.mode # full / subtypes / feature - what type of data are we passing to the model
 
-mode = "feature" # full / subtypes / feature - what type of data are we passing to the model
-
-metrics_output_folder = f"../data/{mode}/metrics/"
-params_output_folder = f"../data/{mode}/params/"
 
 ## using the data from RFE
 if mode == "feature" :
@@ -51,9 +56,40 @@ elif mode == "subtypes":
 else:
     raise SystemError(f"The mode of analysis is not supported - received {mode}, expected feature, full or subtypes")
 
+
 print(f"Using data from the folder: {input_data}\n")
 
-#### Loading in the Data ####
+metrics_output_folder = f"../data/{mode}/metrics/"
+params_output_folder = f"../data/{mode}/params/"
+
+print(f"output metric data to: {metrics_output_folder}")
+print(f"output params data to: {params_output_folder}\n")
+
+
+##### ~~~~~~~~~~~~~~~ #####
+##### Run Main script #####
+##### ~~~~~~~~~~~~~~~ #####
+
+
+threads = os.cpu_count()
+
+if threads is None:
+    threads = 1
+
+print(f"There appear to be {threads} threads available!!\n")
+
+
+
+#### Other Global Params ####
+num_folds = 5
+print(f"Using K-fold Cross Validation with a K of {num_folds}\n")
+
+
+
+##### ~~~~~~~~~~~~~~~~ #####
+##### Parsing the Data #####
+##### ~~~~~~~~~~~~~~~~ #####
+
 _raw_data = pd.read_csv(input_data)
 raw_data = _raw_data.drop(["DiseaseSubtype", "PseudoID"], axis = 1)
 
@@ -77,6 +113,11 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 
 
 
+##### ~~~~~~~~~~~~~~~~~~~~ #####
+##### Defining the Metrics #####
+##### ~~~~~~~~~~~~~~~~~~~~ #####
+
+
 #### Metrics ####
 base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa", "matthew_coef"]
 
@@ -88,7 +129,12 @@ for base_metric in base_metrics:
     for key, value in metric.scorer_func.items():
         metrics[key] = value
 
-#### Some common hyperparameters
+
+
+##### ~~~~~~~~~~~~~~~~~~~~ #####
+##### Defining some params #####
+##### ~~~~~~~~~~~~~~~~~~~~ #####
+
 c_values = [0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
 
 estimators = [50, 100, 400, 800]
@@ -97,6 +143,11 @@ min_samples_leaf = [2, 5, 10]
 max_features = [None, "sqrt"]
 max_depth = [None, 3, 10, 30]
 
+
+
+##### ~~~~~~~~~~~~~~~~~~~~~ #####
+##### Setting up the Models #####
+##### ~~~~~~~~~~~~~~~~~~~~~ #####
 
 #### LogisticRegression ####
 ## penalty was None but that generated an error??
@@ -263,7 +314,11 @@ param_collection = [log_reg_params, knn_params, gnb_params,
                     rf_params, gb_params, svc_params, svc_params_2,
                     dummy_params]
 
-#### Run the Pipeline ####
+
+
+##### ~~~~~~~~~~~~~~~~~~~~ #####
+##### Running the Pipeline #####
+##### ~~~~~~~~~~~~~~~~~~~~ #####
 
 if __name__ == "__main__":
 
@@ -278,4 +333,6 @@ if __name__ == "__main__":
         df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
 
         pipeline.save_as_csv(df, metrics_output_folder)
+
+print("End of Python Script\n")
 
