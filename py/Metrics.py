@@ -1,13 +1,18 @@
-from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score, roc_auc_score, cohen_kappa_score, matthews_corrcoef, log_loss, accuracy_score, balanced_accuracy_score
+from sklearn.metrics import make_scorer, recall_score, precision_score, f1_score, fbeta_score, roc_auc_score
+from sklearn.metrics import cohen_kappa_score, matthews_corrcoef, log_loss, accuracy_score, balanced_accuracy_score
+from sklearn.metrics import confusion_matrix
+
+import numpy as np
 
 class Metric():
 
-    def __init__(self, metric_name:str, is_binary:bool = False):
+    def __init__(self, metric_name:str, labels:list, is_binary:bool = False):
         
         if self.check_metric_input(metric_name):
 
             self.metric_name = metric_name
             self.is_binary = is_binary
+            self.labels = labels
             self.scorer_func = {} 
             self.is_expandable = self.check_metric_type()
 
@@ -75,7 +80,7 @@ class Metric():
     def generate_expanded_scorers(self) -> dict:
 
         
-        labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL']
+        # labels = ['CS', 'HV', 'PA', 'PHT', 'PPGL']
         metrics_suffix = ["macro", "micro", "weighted"]
 
         ## fbeta requires additional arguments - handle separately
@@ -89,7 +94,7 @@ class Metric():
                           beta = beta,
                           average = average, 
                           zero_division = 0,
-                          labels = labels
+                          labels = self.labels
                           )
 
                       for average in metrics_suffix
@@ -104,7 +109,7 @@ class Metric():
                           self.metric_func,
                           multi_class = "ovr",  ## One vs the Rest - default is raise.
                           average = average, 
-                          labels = labels
+                          labels = self.labels
                           )
 
                       for average in metrics_suffix}
@@ -117,7 +122,7 @@ class Metric():
                       self.metric_func, 
                       average = average, 
                       zero_division = 0,
-                      labels = labels, 
+                      labels = self.labels, 
                       pos_label = None
                       )
                   for average in metrics_suffix}
@@ -135,4 +140,69 @@ class Metric():
         scorer = {self.metric_name : make_scorer(self.metric_func)}
 
         return scorer
+
+
+class ConfusionMetrics():
+    def __init__(self, labels:list) -> None:
+        self.labels = labels
+
+    def label_confusion_values(self, cm) -> dict:
+        """Takes in a confusion matrix, and puts values into a dictionary"""
+
+        ##      A   B   C
+        ## A    10  2   3
+        ## B    3   12  4
+        ## C    0   1   14
+
+        ## False Positive is the sum of column minus the the true positives (the diagonal)
+        FP = cm.sum(axis=0) - np.diag(cm)  
+        ## False Negative is the sum of the row minus the true positions
+        FN = cm.sum(axis=1) - np.diag(cm)
+        ## True positives are on the diagonal
+        TP = np.diag(cm)
+        ## Sum of entire matrix, then subtract all the previous values
+        TN = cm.sum() - (FP + FN + TP)
+
+        ## returns {"tp" : [10, 12, 14], ...}
+        return {"tp" : TP, "fp" : FP, "tn" : TN, "fn" : FN}
+
+    def generate_extractor(self, metric, label):
+
+        try:
+            index = self.labels.index(label)
+
+        except ValueError:
+
+            raise SystemError(f"Received {label} but expected an item in {self.labels}")
+
+        def extract_class_metric(y_true, y_pred):
+        
+            ## generate the confusion matrix from predicted and true lables
+            cm = confusion_matrix(y_true, y_pred, labels = self.labels)
+
+            ## add the labels, ie the TP, FP, TN and FP - with their values in the list
+            cm_dict = self.label_confusion_values(cm)
+
+            ## extract the specific value, if the TP for class number 3
+            return cm_dict[metric][index]
+
+        return extract_class_metric
+
+    def generate_scorers(self) -> dict:
+
+        scorer_funcs = {}
+
+        ## iterate over type of metric
+        for metric in ["tp", "fp", "tn", "fn"]:
+            ## iterate over all the labels
+            for label in self.labels:
+
+                ## key should be in form "tp_class1", when class1 is the label used in the data.
+                key = str(metric) + "_" + str(label)
+
+                scorer_funcs[key] = make_scorer(self.generate_extractor(metric, label))
+
+        return scorer_funcs
+
+
 
