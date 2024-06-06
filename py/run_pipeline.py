@@ -2,7 +2,7 @@
 from Pipeline import Pipeline
 from Model import Model
 from Model import Hyperparametres
-from Metrics import Metric
+from Metrics import Metric, ConfusionMetrics
 
 ## Models
 from sklearn.linear_model import LogisticRegression
@@ -43,14 +43,19 @@ mode = args.mode # full / subtypes / feature - what type of data are we passing 
 ## using the data from RFE
 if mode == "feature" :
     input_data = "../data/feature_selection/GradientBoostingRFE_Features.csv"
+    labels = ["CS", "PA", "PHT", "PPGL"]
+
 
 ## using the full dataset - including healthy controls
 elif mode == "full" :
     input_data = "../data/TidyData.csv"
+    labels = ["HV", "CS", "PA", "PHT", "PPGL"]
+
 
 ## using just the data on the hypertensive patients
 elif mode == "subtypes":
     input_data = "../data/SubTypeData.csv"
+    labels = ["CS", "PA", "PHT", "PPGL"]
 
 ## unsupported mode / typo
 else:
@@ -61,6 +66,7 @@ print(f"Using data from the folder: {input_data}\n")
 
 metrics_output_folder = f"../data/{mode}/metrics/"
 params_output_folder = f"../data/{mode}/params/"
+confusion_matrix_output_folder = f"../data/{mode}/conf_mat/"
 
 print(f"output metric data to: {metrics_output_folder}")
 print(f"output params data to: {params_output_folder}\n")
@@ -124,12 +130,16 @@ base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "f
 
 metrics = {}
 for base_metric in base_metrics:
-    metric = Metric(base_metric)
+    metric = Metric(base_metric, labels = labels)
     metric.generate_scorer_func()
     for key, value in metric.scorer_func.items():
         metrics[key] = value
 
 
+confusion_metrics = ConfusionMetrics(labels = labels)
+confusion_scorers = confusion_metrics.generate_scorers() 
+
+# print(confusion_scorers)
 
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 ##### Defining some params #####
@@ -143,7 +153,7 @@ min_samples_leaf = [2, 5, 10]
 max_features = [None, "sqrt"]
 max_depth = [None, 3, 10, 30]
 
-
+n_neighbors = [2, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40]
 
 ##### ~~~~~~~~~~~~~~~~~~~~~ #####
 ##### Setting up the Models #####
@@ -178,7 +188,7 @@ knn_params = Hyperparametres(
             model_name = "KNearestNeighbours", 
             model_code = "KNN", 
             params = {
-            "n_neighbors" : [2, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40], 
+            "n_neighbors" : n_neighbors, 
             "weights" : ["uniform", "distance"]
             })
 
@@ -328,11 +338,22 @@ if __name__ == "__main__":
 
     for model in model_collection:
 
+        ## with the standard metrics
         pipeline = Pipeline(model, metrics)
 
         df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
 
         pipeline.save_as_csv(df, metrics_output_folder)
+
+        ## repeat but to get the confusion matrix values
+
+        cm_pipeline = Pipeline(model, confusion_scorers)
+
+        cm_df = cm_pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
+
+        cm_pipeline.save_as_csv(cm_df, confusion_matrix_output_folder)
+
+
 
 print("End of Python Script\n")
 

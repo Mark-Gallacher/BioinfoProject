@@ -64,8 +64,6 @@ else:
 
 print(f"Using data from the folder: {input_data}\n")
 
-mode = "test" ## we should not overwrite the proper data from the full pipeline
-
 metrics_output_folder = f"../data/{mode}/metrics/"
 params_output_folder = f"../data/{mode}/params/"
 confusion_matrix_output_folder = f"../data/{mode}/conf_mat/"
@@ -141,23 +139,20 @@ for base_metric in base_metrics:
 confusion_metrics = ConfusionMetrics(labels = labels)
 confusion_scorers = confusion_metrics.generate_scorers() 
 
-print(confusion_scorers)
-
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 ##### Defining some params #####
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 
-c_values = [0.001, 1]
+c_values = [0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
 
-estimators = [50, 100]
-min_samples_splits = [5, 20]
-min_samples_leaf = [5, 10]
-max_features = [None]
-max_depth = [None]
-learning_rate = [.1]
+estimators = [50, 100, 400, 800]
+min_samples_splits = [5, 20, 40]
+min_samples_leaf = [2, 5, 10]
+max_features = [None, "sqrt"]
+max_depth = [None, 3, 10, 30]
+learning_rate = [0.01, 0.1, 0.25, 0.5]
 
-n_neighbors = [10, 20] 
-
+n_neighbors = [2, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40]
 
 ##### ~~~~~~~~~~~~~~~~~~~~~ #####
 ##### Setting up the Models #####
@@ -304,6 +299,8 @@ svc_model_2 = Model(
             class_weight = 'balanced')
             
 
+
+
 #### Dummy Classifier
 dummy_params = Hyperparametres(model_name = "Dummy", 
                                model_code= "Dum", 
@@ -315,6 +312,8 @@ dummy_model = Model(model = DummyClassifier,
                     folds = folds,
                     strategy = "most_frequent")
 
+
+
 #### Collection of Models
 model_collection = [log_reg_model, knn_model, gnb_model, 
                     rf_model, gb_model, svc_model, svc_model_2,
@@ -324,7 +323,11 @@ param_collection = [log_reg_params, knn_params, gnb_params,
                     rf_params, gb_params, svc_params, svc_params_2,
                     dummy_params]
 
-#### Run the Pipeline ####
+
+
+##### ~~~~~~~~~~~~~~~~~~~~ #####
+##### Running the Pipeline #####
+##### ~~~~~~~~~~~~~~~~~~~~ #####
 
 if __name__ == "__main__":
 

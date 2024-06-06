@@ -140,9 +140,7 @@ class Pipeline():
 
         except Exception as e:
 
-            print(f"File was not found - please check the path: {folder}")
-            print(f"Model: {self.model_name} \n - Error: {e}")
-            raise SystemError(1)
+            raise SystemError(f"File was not found - please check the path: {folder} \nModel: {self.model_name} \n- Error: {e}")
 
 
 
