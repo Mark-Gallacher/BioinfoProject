@@ -87,7 +87,7 @@ main() {
     mkdir -p ${out_dir}
 
     local dir ## init the for loop var.
-    for dir in metrics params;
+    for dir in metrics params conf_mat;
     do
         
         local folder="${csv_dir}/${dir}"

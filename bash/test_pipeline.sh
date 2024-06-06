@@ -38,7 +38,7 @@ fi
 
 cd ${py_script_home}
 
-python3 "test_pipeline.py" \
+python3 "test_pipeline.py" --mode "subtypes" \
     && echo "Python Script appears to ran without errors" \
     || echo "Python Script appears to have ran into errors!!"
 
