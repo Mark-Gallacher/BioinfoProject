@@ -287,10 +287,10 @@ svc_params_2 = Hyperparametres(
             params = [
                 {"penalty" : ["l2"], 
                  "loss" : ["hinge", "squared_hinge"],
-                 "C" : c_values}, 
-                {"penalty" : ["l1"], 
-                 "loss" : ["squared_hinge"],
-                 "C" : c_values}
+                 "C" : c_values} 
+               # {"penalty" : ["l1"], 
+               # "loss" : ["squared_hinge"],
+               # "C" : c_values}
                 ])
 
 svc_model_2 = Model(
