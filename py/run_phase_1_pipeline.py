@@ -127,24 +127,36 @@ train_data = scaler.fit_transform(_unscaled_train_data[columns])
 #### Metrics ####
 base_metrics = ["precision", "recall", "accuracy", "balanced_accuracy", "f1", "fbeta", "cohen_kappa", "matthew_coef"]
 
-
+## get the standard metrics - listed above
 metrics = {}
 for base_metric in base_metrics:
+    ## for each type of metrics, generate the scorer function(s)
+    ## ensure all have the same labels to explicitly control order values
+    ## this is more importance for ConfusionMetrics though
     metric = Metric(base_metric, labels = labels)
     metric.generate_scorer_func()
+
+    ## some metrics return multiple scorers - ie macro, micro and weighted
     for key, value in metric.scorer_func.items():
         metrics[key] = value
 
-
+## Get the TP, FP, TN and FN from the confusion matrix
 confusion_metrics = ConfusionMetrics(labels = labels)
 confusion_scorers = confusion_metrics.generate_scorers() 
+
+## Both confusion_scorers and metrics are dictionarys, in format 
+## - { name : scorer_function }
+## let's merge the two dictionary so we don't need to run GridSearchCV twice.
+metrics.update(confusion_scorers)
 
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 ##### Defining some params #####
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 
+## for Linear models - i.e Logistic Regression and SVM
 c_values = [0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
 
+## for RandomForest and Gradient Boosted Trees
 estimators = [50, 100, 400, 800]
 min_samples_splits = [5, 20, 40]
 min_samples_leaf = [2, 5, 10]
@@ -152,6 +164,7 @@ max_features = [None, "sqrt"]
 max_depth = [None, 3, 10, 30]
 learning_rate = [0.01, 0.1, 0.25, 0.5]
 
+## for K-nearest Neighbours
 n_neighbors = [2, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40]
 
 ##### ~~~~~~~~~~~~~~~~~~~~~ #####
@@ -343,15 +356,6 @@ if __name__ == "__main__":
         df = pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
 
         pipeline.save_as_csv(df, metrics_output_folder)
-
-        ## repeat but to get the confusion matrix values
-
-        cm_pipeline = Pipeline(model, confusion_scorers)
-
-        cm_df = cm_pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
-
-        cm_pipeline.save_as_csv(cm_df, confusion_matrix_output_folder)
-
 
 
 print("End of Python Script\n")

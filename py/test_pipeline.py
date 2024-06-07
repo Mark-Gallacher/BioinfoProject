@@ -141,7 +141,12 @@ for base_metric in base_metrics:
 confusion_metrics = ConfusionMetrics(labels = labels)
 confusion_scorers = confusion_metrics.generate_scorers() 
 
-print(confusion_scorers)
+## let's merge the two dictionary of scores
+metrics.update(confusion_scorers)
+
+for key, value in metrics.items():
+
+    print(f"{key} : {value}")
 
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 ##### Defining some params #####
@@ -343,11 +348,11 @@ if __name__ == "__main__":
 
         ## repeat but to get the confusion matrix values
 
-        cm_pipeline = Pipeline(model, confusion_scorers)
-
-        cm_df = cm_pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
-
-        cm_pipeline.save_as_csv(cm_df, confusion_matrix_output_folder)
+        # cm_pipeline = Pipeline(model, confusion_scorers)
+        #
+        # cm_df = cm_pipeline.generate_metric_dataframe(X = train_data, y = train_labels)
+        #
+        # cm_pipeline.save_as_csv(cm_df, confusion_matrix_output_folder)
 
 
 
