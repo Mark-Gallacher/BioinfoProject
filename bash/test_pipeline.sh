@@ -14,7 +14,33 @@
 #SBATCH --error=/users/2466057g/project/mars_output/%x-%j.error     # name of error file
 #SBATCH --mail-user=2466057g@student.gla.ac.uk # email address for notifications 
 
-#module python3
+## Defining global variables - with the first being the value from the first argument
+MODE="$1"
+VALID_MODES=("full" "feature" "subtypes")
+
+####### INPUT VALIDATION #######
+## check the input string is a valid mode the python script is expecting
+function is_valid_mode {
+    local mode="$1"
+    
+    for valid_mode in "${VALID_MODES[@]}";
+    do
+        if [[ "${mode}" == "${valid_mode}" ]];
+        then
+            return 0
+        fi
+    done
+    return 1
+}
+
+if is_valid_mode "$MODE";
+then
+    echo -e "Mode: '${MODE}' appears to be valid! \n"
+
+else
+    echo "Mode: '${MODE}' appears to be invalid!"
+    exit 1
+fi
 
 ############# CODE #############
 
@@ -25,22 +51,22 @@ bash_script_home="${project_home}/bash"
 
 source "${env_home}/bin/activate"
 
-echo "Virtual Environment Activated"
+echo -e "Virtual Environment Activated\n"
 
 # ensure the venv is active
 if [[ "${VIRTUAL_ENV}" == "" ]]
 then
 
-    echo "Virtual Environment seems inactive"
+    echo -e "Virtual Environment seems inactive\n"
     exit 1
 
 fi
 
 cd ${py_script_home}
 
-python3 "test_pipeline.py" --mode "subtypes" \
-    && echo "Python Script appears to ran without errors" \
-    || echo "Python Script appears to have ran into errors!!"
+python3 "test_pipeline.py" --mode "${MODE}" \
+    && echo -e "Python Script appears to ran without errors\n" \
+    || echo -e "Python Script appears to have ran into errors!!\n"
 
 cd ${project_home}
 
@@ -50,7 +76,7 @@ then
 
     deactivate
 
-    echo "Virtual Environment Deactivated"
+    echo -e "Virtual Environment Deactivated\n"
 
 fi
 
