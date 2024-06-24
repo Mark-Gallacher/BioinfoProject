@@ -89,49 +89,19 @@ It is also worth pointing out that the most conservative metrics appear to be MC
 ### Comparison of Metric Type
 
 ```{r}
-point_size = 2.5
-main_line_width = 2
-minor_line_width = 1.5
-
 
 metric_code |> 
-  filter(model_code != "DUM") |> 
-  parse_metric_column() |>
-  ggplot(aes(x = model_code, y = rel_mean, 
-             colour = metric_type, 
-             group = metric))+
-  geom_point(size = point_size, shape = 15, alpha = .8) +
-  geom_line(linewidth = main_line_width, show.legend = F, alpha = .5) +
-  geom_hline(yintercept = 1, linewidth = minor_line_width) +
-  scale_x_discrete("Model Type") +
-  scale_y_continuous("Relatiive Mean Score") +
-  ggtitle("Comparing Metric Type Across Models") +
-  scale_colour_manual("Metric", 
-                      values = metric_colours, 
-                      labels = metric_labels, 
-                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
-  report_theme(base_size = 13)
+  plot_model_metrics(metric_type, 1)
+
 ```
 
 ### Comparison of Averaging Method
 
 ```{r}
+
 metric_code |>
-  filter(model_code != "DUM") |>
-  parse_metric_column() |>
-  ggplot(aes(x = model_code, y = rel_mean,
-             colour = average_type,
-             group = metric))+
-  geom_point(size = point_size, shape = 15, alpha = .8) +
-  geom_line(linewidth = main_line_width, show.legend = F, alpha = .5) +
-  geom_hline(yintercept = 1, linewidth = minor_line_width) +
-  scale_x_discrete("Model Type") +
-  scale_y_continuous("Relatiive Mean Score") +
-  ggtitle("Comparing Averaging Method Across Models") +
-  scale_colour_manual("Averaging Method",
-                      values = average_colours,
-                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
-  report_theme(base_size = 13)
+  plot_model_metrics(average_type, 1)
+
 ```
 
 ## Comparison of Mean and Standard Deviation of Each Metric {.tabset}
@@ -204,6 +174,133 @@ metric_id |>
   report_theme(base_size = 13)
 ```
 
+## Comparison of Models using Dummy Classifer {.tabset}
+
+---
+
+### Metric Scores of Dummy
+
+```{r}
+metrics_df |> 
+  filter(model_code == "DUM") |> 
+  ggplot(aes(x = reorder(metric, score), y = score, fill = average_type)) +
+  stat_summary(fun = mean, geom = "bar") +
+  scale_x_discrete("Metric", labels = ~ str_replace_all(., "_", " ") |> str_to_title()) +
+  scale_y_continuous("Mean Score")+
+  scale_fill_manual("Averaging Method", 
+                      values = average_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  coord_flip() +
+  ggtitle("Metric Scores from Dummy Classifier") +
+  report_theme(15) 
+  
+```
+
+```{r}
+
+dum_df <- metrics_df |> 
+  filter(model_code == "DUM") |> 
+  summarise(.by = metric, dum_score = mean(score))
+
+
+diff_df <- metrics_df |> 
+  filter(model_code != "DUM") |> 
+  summarise(.by = c(model_code, average_type, metric_type, metric), 
+            mean_score = mean(score, na.rm = T)) |> 
+  inner_join(dum_df, by = "metric") |> 
+  mutate(
+    diff = mean_score - dum_score, 
+    rel_diff = mean_score / dum_score,
+    rel_inc = diff / (1 - dum_score)
+    )
+
+```
+
+### Absolute Difference (by average)
+
+The metric score for a model subtract the score from the dummy. 
+
+```{r}
+
+# diff_df |> 
+#   plot_folds_average("Micro", rel_inc)
+
+diff_df |> 
+  plot_model_metrics(average_type, 
+                     y = diff, 
+                     y_title = "Absolute Difference from Dummy")
+
+```
+
+### Absolute Difference (by metric)
+
+The metric score for a model subtract the score from the dummy. 
+
+```{r}
+
+# diff_df |> 
+#   plot_folds_average("Micro", rel_inc)
+
+diff_df |> 
+  plot_model_metrics(metric_type, 
+                     y = diff, 
+                     y_title = "Absolute Difference from Dummy")
+
+```
+
+### Relative Difference (by average)
+
+The metric score of the model divided by the score from the dummy. A score of 1 is achieved when the model and dummy have the same value. Larger scores indicate larger positive changes in the metric score.
+
+```{r}
+
+diff_df |> 
+  plot_model_metrics(average_type, 
+                     y = rel_diff, 
+                     y_title = "Relative Difference from Dummy")
+
+```
+
+### Relative Difference (by metric)
+
+The metric score of the model divided by the score from the dummy. A score of 1 is achieved when the model and dummy have the same value. Larger scores indicate larger positive changes in the metric score.
+
+```{r}
+
+diff_df |> 
+  plot_model_metrics(metric_type, 
+                     y = rel_diff, 
+                     y_title = "Relative Difference from Dummy")
+
+```
+
+### Relative to Maximum Difference (by average)
+
+The difference between the model and the dummy, divided by one minus the dummy score. For example, if the dummy has a score of 60%, that means the maximum increase that is possible is 40%. So we take the difference and divide by this maximum to see how much the model improves. A score of 1 denotes the model achieved 100% of the possible increase.
+
+```{r}
+
+diff_df |> 
+  plot_model_metrics(average_type, 
+                     y = rel_inc, 
+                     y_title = "Relative Difference from Maximum Increase")
+
+```
+
+### Relative to Maximum Difference (by metric)
+
+The difference between the model and the dummy, divided by one minus the dummy score. For example, if the dummy has a score of 60%, that means the maximum increase that is possible is 40%. So we take the difference and divide by this maximum to see how much the model improves. A score of 1 denotes the model achieved 100% of the possible increase.
+
+```{r}
+
+diff_df |> 
+  plot_model_metrics(metric_type, 
+                     y = rel_inc, 
+                     y_title = "Relative Difference from Maximum Increase")
+
+```
+
+
 ## Comparison of Models Using Metrics* {.tabset}
 
 ---
@@ -216,54 +313,23 @@ The five folds used in the cross validation are the same across all the models, 
 
 ```{r}
 metrics_df |> 
-  filter(average_type == "Micro", model_code != "DUM") |> 
-  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
-  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
-  ggtitle("Comparison of the Models with Metric with Micro Averaging") +
-  scale_colour_manual("Model", 
-                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
-                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
-                                 "SVM" = "#577590"), 
-                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
-  facet_wrap(~metric_type) +
-  report_theme(14)
-
+  plot_folds_average("Micro")
 ```
 
 
 ### Macro Averaging
 
 ```{r}
-metrics_df |> 
-  filter(average_type == "Macro", model_code != "DUM") |> 
-  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
-  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
-  ggtitle("Comparison of the Models with Metric with Macro Averaging") +
-  scale_colour_manual("Model", 
-                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
-                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
-                                 "SVM" = "#577590"), 
-                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
-  facet_wrap(~metric_type) +
-  report_theme(14)
+metrics_df |>
+  plot_folds_average("Macro")
 
 ```
 
 ### Weighted Averaging
 
 ```{r}
-metrics_df |> 
-  filter(average_type == "Weighted", model_code != "DUM") |> 
-  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
-  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
-  ggtitle("Comparison of the Models with Metric with Weighted Averaging") +
-  scale_colour_manual("Model", 
-                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
-                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
-                                 "SVM" = "#577590"), 
-                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
-  facet_wrap(~metric_type) +
-  report_theme(14)
+metrics_df |>
+  plot_folds_average("Weighted")
 
 ```
 
@@ -271,38 +337,299 @@ metrics_df |>
 
 ```{r}
 
-metrics_df |> 
-  filter(average_type == "None", model_code != "DUM") |> 
-  ggplot(aes(x = fold, y = score, colour = model_code, group = model_id))+
-  stat_summary(aes(group = model_code), geom = "line", fun = "mean", alpha = .7, linewidth = 2, fun.args = list(trim = .05)) +
-  ggtitle("Comparison of the Models with Metric without Averaging") +
-  scale_colour_manual("Model", 
-                      values = c("GNB" = "#f94144", "GB" = "#f3722c", "KNN" = "#f8961e", 
-                                 "LSCM" = "#f9c74f", "LG" = "#90be6d", "RF" = "#43aa8b", 
-                                 "SVM" = "#577590"), 
-                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
-  facet_wrap(~metric_type) +
-  report_theme(14)
+metrics_df |>
+  plot_folds_average("None")
 
 ```
 
-## Correlation of Metrics
+## Comparison of Top Model Using Metrics
 
 ---
 
 ```{r}
+
+top_metrics_df <- metrics_df |> 
+  filter(model_code != "DUM") |> 
+  summarise(.by = c(metric, model_id, model_code), 
+            mean_score = mean(score)) |> 
+  slice_max(order_by = mean_score, 
+            by = c(model_code, metric), 
+            n = 10) |> 
+  left_join(metrics_df, by = c("metric", "model_id", "model_code"))
+
+top_metrics_df_2 <- top_metrics_df|> 
+  select(-score, -id, -fold) |> 
+  distinct()
+
+
+```
+
+### Micro Averaging
+
+```{r}
+# top_metrics_df |> 
+#   plot_model_metrics(colour = average_type, 
+#                      y = mean_score, 
+#                      y_title = "Mean Score")
+#                      
+# top_metrics_df |> 
+  # ggplot(aes(x = model_code, 
+  #              y = score, 
+  #              colour = average_type))+
+  # # geom_violin(alpha = .4)+
+  # geom_jitter(size = point_size, shape = 15, alpha = .8)+
+  # scale_x_discrete("Model Type") +
+  # scale_y_continuous("Mean Score") +
+  # ggtitle("Comparing Averaging Methods Across Models") +
+  # scale_colour_manual("Averaging Method",
+  #                     values = average_colours,
+  #                     guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1)))+
+  # report_theme(base_size = 13)
+  #
+```
+
+
+```{r}
+
+top_metrics_df |>
+  plot_folds_func("Micro", func = "max")
+
+```
+
+
+### Macro Averaging
+
+```{r}
+
+top_metrics_df |>
+  plot_folds_func("Macro", func = "max")
+
+```
+
+### Weighted Averaging
+
+```{r}
+
+top_metrics_df |>
+  plot_folds_func("Weighted", func = "max")
+
+```
+
+### No Averaging
+
+```{r}
+
+top_metrics_df |>
+  plot_folds_func("None", func = "max")
+
+```
+
+### Testing Violin Plots
+
+```{r}
+
+top_metrics_df_2 |> 
+  filter(average_type == "None") |> 
+  ggplot(aes(x = reorder(model_code, mean_score), 
+             y = mean_score, 
+             fill = model_code, 
+             colour = model_code))+
+  # geom_violin()+
+  geom_jitter() +
+  facet_wrap(~metric_type, nrow = 2)
+
+```
+
+
+### Testing Heatmap
+
+```{r}
+
+top_metrics_df_2 |> 
+  summarise(.by = c(metric, model_code), 
+            max_score = max(mean_score)) |> 
+  ggplot(aes(x = reorder(model_code, max_score), y = reorder(metric, max_score), fill = max_score))+
+  geom_tile(colour = "white") +
+  geom_text(aes(label = round(max_score, 2)))+
+  scale_fill_gradientn("Corr",
+                       colours = c("blue", "grey80", "red"))
+
+
+```
+
+
+## Correlation of Metrics {.tabset}
+
+---
+
+### Pearson's r
+
+```{r}
 library(ggcorrplot)
 
-corr <- metrics |> 
+corr_pear <- metrics |> 
   select(where(is.numeric)) |> 
   rename_with( ~ str_replace_all(., "_", " ") |> str_to_title()) |>
   scale() |>
-  cor(use = "complete.obs")
+  cor(use = "complete.obs", 
+      method = "pearson")
 
-ggcorrplot(corr, 
-           lab = T, 
+ggcorrplot(corr_pear, 
+           lab = T,
            type = "lower", 
-           title = "Correlation Between All the Metrics")
+           title = "Pearson Correlation Between All the Metrics")+
+  scale_fill_gradientn("Corr",
+                       colours = c("blue", "red"),
+                       limit = c(.65, 1))
 
 ```
+
+### Spearman's r
+
+```{r}
+corr_spear <- metrics |> 
+  select(where(is.numeric)) |> 
+  rename_with( ~ str_replace_all(., "_", " ") |> str_to_title()) |>
+  scale() |>
+  cor(use = "complete.obs", 
+      method = "spearman")
+
+ggcorrplot(corr_spear, 
+           lab = T,
+           type = "lower", 
+           title = "Spearman Correlation Between All the Metrics")+
+  scale_fill_gradientn("Corr",
+                       colours = c("blue", "red"),
+                       limit = c(.65, 1))
+```
+
+### Pearson's r (top models)
+
+```{r}
+top_ids <- top_metrics_df |> 
+  pluck("model_id")
+
+top_corr_pear <- metrics |> 
+  filter(model_id %in% top_ids) |> 
+  select(where(is.numeric)) |> 
+  rename_with( ~ str_replace_all(., "_", " ") |> str_to_title()) |>
+  scale() |>
+  cor(use = "complete.obs", 
+      method = "pearson")
+
+ggcorrplot(top_corr_pear, 
+           lab = T,
+           type = "lower", 
+           title = "Spearman Correlation Between All the Metrics")+
+  scale_fill_gradientn("Corr",
+                       colours = c("blue", "red"),
+                       limit = c(.65, 1))
+```
+
+### Spearmans's r (top models)
+
+```{r}
+top_ids <- top_metrics_df |> 
+  pluck("model_id")
+
+top_corr_spear <- metrics |> 
+  filter(model_id %in% top_ids) |> 
+  select(where(is.numeric)) |> 
+  rename_with( ~ str_replace_all(., "_", " ") |> str_to_title()) |>
+  scale() |>
+  cor(use = "complete.obs", 
+      method = "spearman")
+
+ggcorrplot(top_corr_spear, 
+           lab = T,
+           type = "lower", 
+           title = "Spearman Correlation Between All the Metrics")+
+  scale_fill_gradientn("Corr",
+                       colours = c("blue", "red"),
+                       limit = c(.65, 1))
+```
+
+## Confusion Matrix
+
+---
+
+### Testing Boxplots for the Values from a Confusion Matrix 
+
+```{r}
+
+conf_df <- confusion |> 
+  filter(model_id %in% top_ids) |> 
+  pivot_longer(
+    cols = starts_with(c("tp_", "fp_", "tn_", "fn_")),
+    names_to = c("metric", "group"), 
+    values_to = "value", 
+    names_sep = "_"
+    )
+
+```
+
+
+```{r}
+
+conf_df |> 
+  ggplot(aes(x = model_code, y = value, fill = group))+
+  geom_boxplot(alpha = .8)+
+  facet_wrap(~metric, nrow = 2, scales = "free_y")
+
+```
+
+### Testiing Heatmaps for the Values from the Confusion Matrix
+
+```{r}
+
+conf_df |> 
+  mutate(
+    group = factor(group, levels = sort(unique(conf_df$group)), ordered = T), 
+    metric_group = str_c(metric, "_", group), 
+         ) |> 
+  arrange(group) |> 
+  ggplot(aes(x = model_code, y = metric_group, fill = value))+
+  geom_tile(colour = "grey70")
+
+```
+
+
+## Comparing the Ranks of the Best Models
+
+```{r}
+
+top_metrics_df_2 |> 
+  summarise(.by = c(model_code, metric), rank = rank(mean_score, ties.method = "max")) |> 
+  filter(model_code == "GB") |> 
+  ggplot(aes(x = reorder(metric, rank), y = rank, colour = model_code, group = model_code))+
+  geom_line()
+
+```
+
+## Comparison of Metrics, with an Individual Metric on x-axis
+
+```{r}
+top_metrics_df_2 |> 
+  pluck("model_id")
+
+ba_df <- metric_id |> 
+  filter(model_id %in% pluck(top_metrics_df_2, "model_id")) |> 
+  filter(metric == "balanced_accuracy") |> 
+  mutate(bal_acc = rel_mean) |> 
+  select(model_id, bal_acc)
+
+metric_id |> 
+  filter(model_id %in% pluck(top_metrics_df_2, "model_id")) |> 
+  filter(metric != "balanced_accuracy") |> 
+  inner_join(ba_df, by = "model_id") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = bal_acc, y = rel_mean, colour = average_type))+
+  geom_point() +
+  geom_hline(aes(yintercept = 1)) +
+  geom_smooth(method = "lm", se = F)
+
+
+
+```
+
 

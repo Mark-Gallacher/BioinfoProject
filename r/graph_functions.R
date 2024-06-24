@@ -30,6 +30,16 @@ metric_labels = c(
   "recall" = "Recall"
 )
 
+model_colours <- c(
+  "GNB" = "#f94144", 
+  "GB" = "#f3722c", 
+  "KNN" = "#f8961e", 
+  "LSCM" = "#f9c74f", 
+  "LG" = "#90be6d", 
+  "RF" = "#43aa8b", 
+  "SVM" = "#577590", 
+  "DUM" = "grey30")
+
 
 ##### Custom report theme to use for report
 report_theme <- function(base_size = 20){
@@ -140,6 +150,95 @@ plot_hyperparam_1c <- function(code, param1){
   
 }
 
+## plot the models on the x-axis and the metric score on the y-axis - allow for different colouring ie by metric type, averaging type
+plot_model_metrics <- function(df, colour, y_line = NULL, y = rel_mean, y_title = "Relative Mean Score"){
+  
+  point_size = 2.5
+  main_line_width = 2
+  minor_line_width = 1.5
+  
+  .colour_string <- rlang::as_string(rlang::ensym(colour))
+  
+  if(.colour_string == "metric_type"){
+    
+    .title <- "Comparing Metric Type Across Models"
+    .colour_scale <- scale_colour_manual("Metric",
+                                         values = metric_colours, 
+                                         labels = metric_labels, 
+                                         guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1)))
+  }else{
+    if(.colour_string == "average_type"){
+
+    .title <- "Comparing Averaging Method Across Models"
+    .colour_scale <- scale_colour_manual("Averaging Method",
+                                         values = average_colours,
+                                         guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1)))
+    }
+    else{
+      stop(paste0("`colour` is not an expected value, received '", .colour_string, "' but was expecting 'average_type' or 'metric_type'"))
+    }
+    }
+  
+  .p <- df |> 
+    filter(model_code != "DUM") |> 
+    parse_metric_column() |>
+    ggplot(aes(x = model_code, 
+               y = {{ y }}, 
+               colour = {{ colour }}, 
+               group = metric))+
+    geom_point(size = point_size, shape = 15, alpha = .8) +
+    geom_line(linewidth = main_line_width, show.legend = F, alpha = .5)
+  
+  if (!is.null(y_line) && is.numeric(y_line)){
+    .p <- .p +
+      geom_hline(yintercept = 1, linewidth = minor_line_width)
+  }
+  
+  .p <- .p +
+    scale_x_discrete("Model Type") +
+    scale_y_continuous(y_title) +
+    ggtitle(.title) +
+    .colour_scale +
+    report_theme(base_size = 13)
+  
+  .p
+}
+
+plot_folds_func <- function(df, 
+                            average_type = c("Micro", "Macro", "Weighted", "None"), 
+                            y = score, 
+                            base_size = 14, 
+                            func){
+  
+  ## check the average_type is an acceptable choice
+  average_type <- match.arg(average_type)
+  
+  .title <- paste0("Comparison of the Models with Metric with ", average_type, " Averaging") 
+  
+  df |> 
+    filter(average_type == {{ average_type }}, model_code != "DUM") |> 
+    ggplot(aes(x = fold, y = {{ y }}, colour = model_code, group = model_id))+
+    stat_summary(aes(group = model_code), 
+                 geom = "line", 
+                 fun = func, 
+                 alpha = .7, 
+                 linewidth = 2) +
+    ggtitle(.title) +
+    scale_colour_manual("Model", 
+                        values = model_colours, 
+                        guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) + 
+    facet_wrap(~metric_type) +
+    report_theme(base_size)
+  
+}
+
+
+## plots the folds on the x-axis, metric_score on the y axis - to compare models - so coloured by model_code
+plot_folds_average <- function(...) {
+  
+  plot_folds_func(..., func = "mean")
+
+}
 
 
 

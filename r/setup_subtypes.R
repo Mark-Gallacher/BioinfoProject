@@ -10,10 +10,6 @@ source(here("r/graph_functions.R"))
 
 
 ### PARSING THE DATA
-## removing the confusion matrix values from the standard metric values
-.raw_metrics <- .raw_metrics |> 
-  select(!starts_with(c("tp_", "fp_", "tn_", "fn_")))
-
 ## generate a df just for the confusion values.
 confusion <- .raw_metrics |> 
   select(id, starts_with(c("tp_", "fp_", "tn_", "fn_"))) |> 
@@ -22,6 +18,9 @@ confusion <- .raw_metrics |>
     model_id = str_extract(id, "[A-Z]+-[0-9]+")) |> 
   relocate(any_of(c("model_code", "model_id")), .after = id)
 
+## removing the confusion matrix values from the standard metric values
+.raw_metrics <- .raw_metrics |> 
+  select(!starts_with(c("tp_", "fp_", "tn_", "fn_")))
 
 ## expand the id column to add in the model code (like RF, GNB) and the model id (like RF-1)
 metrics <- .raw_metrics |> 
