@@ -1,9 +1,13 @@
 {
     "sortOrder": [
         {
+            "columnIndex": 3,
+            "ascending": false
+        },
+        {
             "columnIndex": 2,
             "ascending": true
         }
     ],
-    "path": "D:/Documents/University/Bioinformatics/project/md"
+    "path": "D:/Documents/University/Bioinformatics/project/data/sim_data"
 }

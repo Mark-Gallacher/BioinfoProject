@@ -174,7 +174,11 @@ class Model():
         are 1-based indices. This allows us to connect the params to the metrics.
         """
 
-        folds = self.folds.n_splits
+        if isinstance(self.folds, int):
+            folds = self.folds
+        
+        else:
+            folds = self.folds.n_splits
 
         model_id = []
 

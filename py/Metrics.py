@@ -51,6 +51,9 @@ class Metric():
         ## Define a list of metrics which can be expanded by averaging strategies.
         expandable_metrics = ["f1", "precision", "recall", "fbeta", "roc_auc"]
 
+        if self.is_binary:
+            return False
+
         if self.metric_name in expandable_metrics:
             return True
 
@@ -137,7 +140,37 @@ class Metric():
         can use in the cross validation process.
         """
 
-        scorer = {self.metric_name : make_scorer(self.metric_func)}
+        ## fbeta requires additional arguments - handle separately
+        if self.metric_name == "fbeta":
+            betas = [2, 3, 4]
+
+            ## generate a dictionary of all the variations of the scoring functions
+            scorer = {self.metric_name + "_" + str(beta) + "_": 
+                      make_scorer(
+                          self.metric_func,
+                          labels = self.labels,
+                          beta = beta)
+
+                      for beta in betas}
+
+
+            return scorer
+
+        elif self.metric_name in ["precision", "recall", "f1_score"]:
+
+            scorer = {self.metric_name : make_scorer(self.metric_func, 
+                                                     labels = self.labels, 
+                                                     zero_division = 0)}
+
+        elif self.metric_name in ["cohen_kappa", "roc_auc"]:
+
+            scorer = {self.metric_name : make_scorer(self.metric_func, 
+                                                     labels = self.labels)}
+
+        else:
+
+            scorer = {self.metric_name : make_scorer(self.metric_func)}
+
 
         return scorer
 
@@ -203,6 +236,4 @@ class ConfusionMetrics():
                 scorer_funcs[key] = make_scorer(self.generate_extractor(metric, label))
 
         return scorer_funcs
-
-
 
