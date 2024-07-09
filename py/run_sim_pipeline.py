@@ -122,7 +122,8 @@ if __name__ == "__main__":
                                     params = dummy_params,
                                     n_jobs = threads, 
                                     folds = 2,
-                                    strategy = "most_frequent")
+                                    strategy = "constant", 
+                                    constant = 1)
 
 
                 
