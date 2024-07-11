@@ -7,6 +7,9 @@ source(here("r/graph_functions.R"))
 ### READING IN THE DATA
 .raw_metrics <- read_csv(here("data/subtypes/merged/metrics_merged.csv"))
 .raw_params <- read_csv(here("data/subtypes/merged/params_merged.csv"))
+.raw_dummy <- read_csv(here("data/sim/merged/metrics_merged.csv"))
+
+
 
 
 ### PARSING THE DATA
@@ -24,6 +27,21 @@ confusion <- .raw_metrics |>
 
 ## expand the id column to add in the model code (like RF, GNB) and the model id (like RF-1)
 metrics <- .raw_metrics |> 
+  mutate(
+    model_code = str_extract(id, "[A-Z]+"), 
+    model_id = str_extract(id, "[A-Z]+-[0-9]+")) |> 
+  relocate(any_of(c("model_code", "model_id")), .after = id)
+
+
+dummy_confusion <- .raw_dummy |> 
+  select(id, starts_with(c("tp_", "fp_", "tn_", "fn_"))) |> 
+  mutate(
+    model_code = str_extract(id, "[A-Z]+"), 
+    model_id = str_extract(id, "[A-Z]+-[0-9]+")) |> 
+  relocate(any_of(c("model_code", "model_id")), .after = id)
+
+dummy <- .raw_dummy |> 
+  select(!starts_with(c("tp_", "fp_", "tn_", "fn_"))) |> 
   mutate(
     model_code = str_extract(id, "[A-Z]+"), 
     model_id = str_extract(id, "[A-Z]+-[0-9]+")) |> 

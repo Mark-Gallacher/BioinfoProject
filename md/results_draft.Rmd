@@ -234,7 +234,6 @@ metric_id |>
 
 The Dummy classifier is configured to always predict the majority class, meaning it does not employ any information from the features. If a dummy classifier is achieving large values in a metric, then that metric is likely sensitive and over-emphasising the performance of the model due to the most frequent label. If the majority class was even larger, we would expect this metrics to equally become larger too. A metric that performs poorly for the dummy classifier is likely useful, as it displays a genuine model has made a considerably improvement that is not due to the imbalance of the data. Metrics like Cohen's Kappa and Matthew Correlation Coefficient, both have scores of zero, indicating they could be good candidates to assess the model with imbalanced data.  
 
-
 ### Metric Scores of Dummy
 
 ```{r}
@@ -1081,6 +1080,80 @@ conf_long |>
   ggplot(aes(x = model_code, y = metric_group, fill = mean_value))+
   geom_tile(colour = "grey70")
 
+```
+
+### Dummy Binary Classifier
+
+#### Precision
+
+```{r}
+dummy |> 
+  summarise(.by = c(model_type, model_id), 
+            across(precision:matthew_coef, mean)) |> 
+  mutate(
+    sample_size = as.numeric(str_extract(model_type, "_(\\d+)_", group = 1)),
+    imbalance = as.numeric(str_extract(model_type, "(\\d+)$", group = 1))) |> 
+  ggplot(aes(x = imbalance, y = precision, colour = sample_size, group = sample_size)) +
+  geom_point(size = 3, shape = 15)+
+  geom_line(linewidth = 1.3)+
+  ggtitle("Performance of Precision Sensitive to Imbalance in Data")+
+  report_theme(12)
+
+dummy |> 
+  summarise(.by = c(model_type, model_id), 
+            across(precision:matthew_coef, mean)) |> 
+  mutate(
+    sample_size = as.numeric(str_extract(model_type, "_(\\d+)_", group = 1)),
+    imbalance = as.numeric(str_extract(model_type, "(\\d+)$", group = 1))) |> 
+  ggplot(aes(x = sample_size, y = precision, colour = imbalance, group = imbalance)) +
+  geom_point(size = 3, shape = 15)+
+  geom_line(linewidth = 1.3)+
+  ggtitle("Performance of Precision Sensitive to Imbalance in Data")+
+  report_theme(12)
+```
+
+#### f1
+
+```{r}
+dummy |> 
+  summarise(.by = c(model_type, model_id), 
+            across(precision:matthew_coef, mean)) |> 
+  mutate(
+    sample_size = as.numeric(str_extract(model_type, "_(\\d+)_", group = 1)),
+    imbalance = as.numeric(str_extract(model_type, "(\\d+)$", group = 1))) |> 
+  ggplot(aes(x = imbalance, y = f1, colour = sample_size, group = sample_size)) +
+  geom_point(size = 3, shape = 15)+
+  geom_line(linewidth = 1.3)+
+  ggtitle("Performance of F1-Score Sensitive to Imbalance in Data")+
+  report_theme(12)
+
+dummy |> 
+  summarise(.by = c(model_type, model_id), 
+            across(precision:matthew_coef, mean)) |> 
+  mutate(
+    sample_size = as.numeric(str_extract(model_type, "_(\\d+)_", group = 1)),
+    imbalance = as.numeric(str_extract(model_type, "(\\d+)$", group = 1))) |> 
+  ggplot(aes(x = sample_size, y = f1, colour = imbalance, group = imbalance)) +
+  geom_point(size = 3, shape = 15)+
+  geom_line(linewidth = 1.3)+
+  ggtitle("Performance of F1-Score Sensitive to Imbalance in Data")+
+  report_theme(12)
+```
+
+#### Recall
+
+```{r}
+dummy |> 
+  summarise(.by = c(model_type, model_id), 
+            across(precision:matthew_coef, mean)) |> 
+  mutate(
+    sample_size = as.numeric(str_extract(model_type, "_(\\d+)_", group = 1)),
+    imbalance = as.numeric(str_extract(model_type, "(\\d+)$", group = 1))) |> 
+  ggplot(aes(x = imbalance, y = recall, colour = sample_size, group = sample_size)) +
+  geom_point(size = 3, shape = 15)+
+  geom_line(linewidth = 1.3)+
+  ggtitle("Performance of F1-Score Sensitive to Imbalance in Data")+
+  report_theme(12)
 ```
 
 <!-- ## Comparing the Ranks of the Best Models -->

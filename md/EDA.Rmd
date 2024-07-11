@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10)
 ```
 
 ```{r}
@@ -54,35 +54,90 @@ data |>
 
 ```{r}
 long_summary <- long_data |> 
-  summarise(.by = mRNA, 
+  summarise(.by = c(mRNA, DiseaseSubtype, DiseaseSubtypeFull), 
             mean = mean(deltaCt),
             sd = sd(deltaCt))
 ```
 
 
 ```{r}
+total_sample = c(50, 100, 200, 400, 800, 1600)
+imbalance = seq(0.5, 0.95, .05)
+exp_id = rep(rep(1:( length(total_sample) * length(imbalance)), times = 2), times = long_summary$mRNA |> n_distinct())
+
+set.seed(1)
+
+sim_dfs <- long_summary |> 
+  filter(DiseaseSubtypeFull %in% c("PHT", "PA")) |> 
+  # pivot_wider(id_cols = mRNA, names_from = DiseaseSubtypeFull, values_from = c(mean, sd)) |> 
+  mutate(
+    total_samples = list(total_sample),
+    imbalance = list(imbalance)) |> 
+  unnest(cols = total_samples) |>
+  unnest(cols = imbalance) |> 
+  mutate(exp_id = exp_id) |>
+  mutate(
+    sample_size = if_else(
+      DiseaseSubtypeFull == "PHT", 
+      ceiling(total_samples * imbalance), 
+      floor(total_samples * (1 - imbalance))
+      ), 
+    row_id = 1:n()) |> 
+  mutate(.by = row_id, 
+    sim_values = list(rnorm(n = sample_size, mean = mean, sd = sd))
+    ) |> 
+  select(exp_id, mRNA, DiseaseSubtype, DiseaseSubtypeFull, total_samples, imbalance, sim_values) |> 
+  unnest(sim_values) |> 
+  pivot_wider(id_cols = c(exp_id, DiseaseSubtype, DiseaseSubtypeFull, total_samples, imbalance), 
+              names_from = mRNA, 
+              values_from = sim_values, 
+              values_fn = list) |> 
+  unnest(everything()) |> 
+  mutate(imbalance = imbalance * 100) |> 
+  group_split(exp_id)
+```
+
+```{r}
+
+write_csv_files <- function(x) {
+  
+  .filename <- paste0("sim_", x$total_samples[[1]], "_", x$imbalance[[1]], ".csv")
+  
+  readr::write_csv(x = x, file = here::here(paste0("data/sim_data/", .filename)))
+  
+}
+
+walk(.x = sim_dfs, 
+     # .f = ~ readr::write_csv(x = .x, file = here::here("sim_data/"))
+     .f = write_csv_files, 
+     .progress = T
+     )
+
+```
+
+
+
+```{r}
 long_summary |> 
-  ggplot(aes(x = mean))+
-  geom_histogram(bins = 100)
+  ggplot(aes(x = mean, fill = DiseaseSubtypeFull, colour = DiseaseSubtypeFull))+
+  geom_histogram(bins = 50, position = "identity", alpha = .3)
+```
+
+```{r}
 
 long_summary |> 
-  ggplot(aes(x = 1:178 , y = cumsum(mean) / sum(mean))) +
-  geom_line() +
-  geom_point(size = .2) +
-  labs(x = "", y = "Prop")
+  ggplot(aes(x = reorder(mRNA, mean), y = mean, colour = DiseaseSubtypeFull)) +
+  geom_point()
+
 ```
 
 
 ```{r}
 long_summary |> 
-  ggplot(aes(x = sd))+
-  geom_histogram(bins = 100)
+  ggplot(aes(x = sd, fill = DiseaseSubtypeFull, colour = DiseaseSubtypeFull))+
+  geom_histogram(bins = 50, position = "identity", alpha = .3)
 
-long_summary |> 
-  ggplot(aes(x = 1:178 , y = cumsum(sd) / sum(sd))) +
-  geom_line() +
-  geom_point(size = .2) +
-  labs(x = "", y = "Prop")
+
 ```
 
 ```{r}
@@ -90,7 +145,7 @@ long_summary |>
 pca <- data |> 
   select(-PseudoID, -starts_with("Disease")) |> 
   select(where(is.numeric)) |> 
-  prcomp(scale = T, rank. = 50)
+  prcomp(scale = T, rank. = 10)
   
 pca_fit <- pca |> 
   broom::augment(data)
