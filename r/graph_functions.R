@@ -69,15 +69,15 @@ report_theme <- function(base_size = 20, ...){
 ##### Function to Save graphs as PNG
 save_graph <- function(graph, name, path = "", width = 8, height = 10){
   
-  require(svglite)
+  # require(svglite)
   
   ## save a graph as a svg.
   ## specify the folder, since we are creating a lot of graphs
   ## the specify the size
   ## ensure background is white
-  ggsave(filename = paste0(name, ".svg"), 
+  ggplot2::ggsave(filename = paste0(name, ".png"), 
          plot = graph, 
-         path = here::here("Figures/svg", path), 
+         path = here::here("figures", path), 
          width = width, height = height, 
          # dpi = 320, 
          bg = "#FFFFFF")
