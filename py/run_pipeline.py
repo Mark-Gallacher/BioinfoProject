@@ -275,8 +275,7 @@ gb_params = Hyperparametres(
         "min_samples_split" : min_samples_splits,
         "min_samples_leaf" : min_samples_leaf,
         "max_features" : max_features,
-        "max_depth" : max_depth,
-        "criterion": criterion
+        "max_depth" : max_depth
             })
 
 gb_model = Model(model = GradientBoostingClassifier, 
