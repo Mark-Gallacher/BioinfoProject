@@ -235,7 +235,8 @@ rf_params = Hyperparametres(
         "min_samples_leaf" : min_samples_leaf,
         "max_features" : max_features,
         "max_depth" : max_depth, 
-        "criterion": criterion
+        "criterion": criterion,
+        "class_weight" : [None, "balanced"]
             })
 
 
