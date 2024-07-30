@@ -162,7 +162,7 @@ min_samples_splits = [4, 8, 16, 32, 64]
 min_samples_leaf = [2, 4, 8]
 max_features = [None, "sqrt"]
 max_depth = [30]
-criterion = ["gini", "log_loss"]
+criterion = ["gini", "entropy"]
 learning_rate = [0.1, 0.2, 0.3, 0.4, 0.5]
 
 ## for K-nearest Neighbours
