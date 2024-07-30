@@ -291,7 +291,7 @@ svc_model = Model(
 
 svc_params_2 = Hyperparametres(
             model_name = "LinearSVC", 
-            model_code = "LSCM", 
+            model_code = "LSVM", 
             params = [
                 {"penalty" : ["l2"], 
                  "loss" : ["hinge", "squared_hinge"],

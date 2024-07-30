@@ -8,7 +8,7 @@ from Metrics import Metric, ConfusionMetrics
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.svm import LinearSVC, SVC
 from sklearn.dummy import DummyClassifier
 
@@ -154,18 +154,19 @@ metrics.update(confusion_scorers)
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 
 ## for Linear models - i.e Logistic Regression and SVM
-c_values = [0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
+c_values = [0.001, 0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256]
 
 ## for RandomForest and Gradient Boosted Trees
-estimators = [50, 100, 400, 800]
-min_samples_splits = [5, 20, 40]
-min_samples_leaf = [2, 5, 10]
+estimators = [50, 100, 300, 500, 1000]
+min_samples_splits = [4, 8, 16, 32, 64]
+min_samples_leaf = [2, 4, 8]
 max_features = [None, "sqrt"]
-max_depth = [None, 3, 10, 30]
-learning_rate = [0.01, 0.1, 0.25, 0.5]
+max_depth = [30]
+criterion = ["gini", "log_loss"]
+learning_rate = [0.1, 0.2, 0.3, 0.4, 0.5]
 
 ## for K-nearest Neighbours
-n_neighbors = [2, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40]
+n_neighbors = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40, 45, 50]
 
 ##### ~~~~~~~~~~~~~~~~~~~~~ #####
 ##### Setting up the Models #####
@@ -182,7 +183,7 @@ log_reg_params = Hyperparametres(
                 "C" : c_values},
                 {"penalty" : ["elasticnet"], 
                 "C" : c_values, 
-                 "l1_ratio" : [.2, .4, .6, .8, 1]}
+                 "l1_ratio" : [.2, .4, .6, .7, .8, .9, 1]}
                 ])
 
 ## Define the Type of Model with the Hyperparametres
@@ -233,7 +234,8 @@ rf_params = Hyperparametres(
         "min_samples_split" : min_samples_splits,
         "min_samples_leaf" : min_samples_leaf,
         "max_features" : max_features,
-        "max_depth" : max_depth
+        "max_depth" : max_depth, 
+        "criterion": criterion
             })
 
 
@@ -244,6 +246,23 @@ rf_model = Model(model = RandomForestClassifier,
                  folds = folds)
 
 
+#### ExtraTress ####
+erf_params = Hyperparametres(
+        model_name = "ExtraRandomForest", 
+        model_code = "ERF", 
+        params = { 
+        "n_estimators" : estimators, 
+        "min_samples_split" : min_samples_splits,
+        "min_samples_leaf" : min_samples_leaf,
+        "max_features" : max_features,
+        "max_depth" : max_depth, 
+        "criterion": criterion
+            })
+
+erf_model = Model(model = ExtraTreesClassifier,
+                  params= erf_params, 
+                  n_jobs = threads, 
+                  folds = folds)
 
 
 #### GradientBoosting Trees ####
@@ -256,7 +275,8 @@ gb_params = Hyperparametres(
         "min_samples_split" : min_samples_splits,
         "min_samples_leaf" : min_samples_leaf,
         "max_features" : max_features,
-        "max_depth" : max_depth
+        "max_depth" : max_depth,
+        "criterion": criterion
             })
 
 gb_model = Model(model = GradientBoostingClassifier, 
@@ -274,9 +294,13 @@ svc_params = Hyperparametres(
          params = [
             {"kernel" : ["linear"],
              "C" : c_values }, 
-             {"kernel": ["rbf", "poly"],
+             {"kernel": ["rbf"],
              "C" : c_values, 
-             "gamma" : ["scale", "auto"]}
+             "gamma" : ["scale", "auto"]}, 
+             {"kernel": ["poly"], 
+              "degree": [2, 3, 4], 
+             "C" : c_values, 
+             "gamma" : ["scale", "auto"]} 
             ])
 
 svc_model = Model(
@@ -291,7 +315,7 @@ svc_model = Model(
 
 svc_params_2 = Hyperparametres(
             model_name = "LinearSVC", 
-            model_code = "LSCM", 
+            model_code = "LSVM", 
             params = [
                 {"penalty" : ["l2"], 
                  "loss" : ["hinge", "squared_hinge"],
@@ -329,11 +353,13 @@ dummy_model = Model(model = DummyClassifier,
 
 #### Collection of Models
 model_collection = [log_reg_model, knn_model, gnb_model, 
-                    rf_model, gb_model, svc_model, svc_model_2,
+                    rf_model, erf_model, gb_model, 
+                    svc_model, svc_model_2,
                     dummy_model]
 
 param_collection = [log_reg_params, knn_params, gnb_params, 
-                    rf_params, gb_params, svc_params, svc_params_2,
+                    rf_params, erf_model, gb_params, 
+                    svc_params, svc_params_2,
                     dummy_params]
 
 
