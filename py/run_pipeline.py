@@ -154,16 +154,16 @@ metrics.update(confusion_scorers)
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 
 ## for Linear models - i.e Logistic Regression and SVM
-c_values = [0.001, 0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256]
+c_values = [0.001, 0.05, 0.01, 0.2, 0.03, 0.05, 0.07, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 ## for RandomForest and Gradient Boosted Trees
 estimators = [50, 100, 300, 500, 1000]
 min_samples_splits = [4, 8, 16, 32, 64]
 min_samples_leaf = [2, 4, 8]
 max_features = [None, "sqrt"]
-max_depth = [30]
+max_depth = [None, 30]
 criterion = ["gini", "entropy"]
-learning_rate = [0.1, 0.2, 0.3, 0.4, 0.5]
+learning_rate = [0.1, 0.2, 0.25, 0.3, 0.4, .5]
 
 ## for K-nearest Neighbours
 n_neighbors = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40, 45, 50]
@@ -183,7 +183,7 @@ log_reg_params = Hyperparametres(
                 "C" : c_values},
                 {"penalty" : ["elasticnet"], 
                 "C" : c_values, 
-                 "l1_ratio" : [.2, .4, .6, .7, .8, .9, 1]}
+                 "l1_ratio" : [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]}
                 ])
 
 ## Define the Type of Model with the Hyperparametres
@@ -257,7 +257,8 @@ erf_params = Hyperparametres(
         "min_samples_leaf" : min_samples_leaf,
         "max_features" : max_features,
         "max_depth" : max_depth, 
-        "criterion": criterion
+        "criterion": criterion,
+        "class_weight" : [None, "balanced"]
             })
 
 erf_model = Model(model = ExtraTreesClassifier,
@@ -294,7 +295,7 @@ svc_params = Hyperparametres(
          params = [
             {"kernel" : ["linear"],
              "C" : c_values }, 
-             {"kernel": ["rbf"],
+             {"kernel": ["rbf", "sigmoid"],
              "C" : c_values, 
              "gamma" : ["scale", "auto"]}, 
              {"kernel": ["poly"], 
