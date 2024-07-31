@@ -64,9 +64,9 @@ else:
 
 print(f"Using data from the folder: {input_data}\n")
 
-metrics_output_folder = f"../data/{mode}/metrics/"
-params_output_folder = f"../data/{mode}/params/"
-confusion_matrix_output_folder = f"../data/{mode}/conf_mat/"
+metrics_output_folder = f"../data/{mode}_phase_1/metrics/"
+params_output_folder = f"../data/{mode}_phase_1/params/"
+confusion_matrix_output_folder = f"../data/{mode}_phase_1/conf_mat/"
 
 print(f"output metric data to: {metrics_output_folder}")
 print(f"output params data to: {params_output_folder}\n")
