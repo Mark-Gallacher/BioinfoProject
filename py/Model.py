@@ -8,23 +8,47 @@ import pandas as pd
 ## A class for the hyperparametres of a model, which is basically a dictionary
 ## this allows it to integrate with the sci-kit API down the line but allows 
 ## us to keep track of what parameters we could change
-class Hyperparametres():
+class Hyperparameters():
+    """ `Hyperparameters` represents the hyperparameter grid for a model. 
+    Requires three arguments for initialisation:
+        - `model_name` - a String to name the model - used to name created files
+        - `model_code` - a String for a short name for the model - used to create IDs for the individual combinations of hyperparameters. 
+        - `params` - a Dictionary (or List) containing the hyperparameters with the values, in the format:
+            - 'name_of_hyperparameter' : [x_1, x_2, ... , x_n] or 
+            - [ {'hyperparameter_1' : [x_1, x_2, ..., x_n]},
+            -   {'hyperparameter_2' : [y_1, y_2, ..., y_n]} ] or 
+            - {} ## if no hyperparameters are to be passed to model
+
+    For Example:
+        - `model_name` could be 'LogisticRegression' with the `model_code` of 'LG'. 
+        - `params` could be {"C" : [0.1, 1, 10]} - to control the penalty term 'C'. 
+    """
 
     def __init__(self, model_name:str, model_code:str, params:dict )-> None:
         
+        ## ensure a useful model name is supplied - defined by length
         if len(model_name) < 3 :
             raise ValueError(f"Please Supply a more useful name than {model_name}, for example - LogisticRegression")
 
+        ## ensure a useful model code is supplied - defined by length
         if len(model_code) < 2 :
             raise ValueError(f"Please supply a more useful code than {model_code}, for example - LG for Logistic Regression")
 
         self.params = params
         self.model_code = model_code.upper()
         self.model_name = model_name 
+
+        ## process the params supplied - form the grid of all the combinations
         self.grid = self.create_grid()
+
+        ## assign each unique model with a ID using the model_code
         self.param_ids = self.create_ids()
 
+
     def create_grid(self) -> list:
+        """ Returns a list of the unique combinations of all the hyperparameters. 
+        Uses the ParameterGrid from Scikit-Learn.
+        """
 
         ## if the dictionary has content
         if self.params:
@@ -39,19 +63,31 @@ class Hyperparametres():
         return grid
 
     def create_ids(self) -> list:
+        """ Returns a list of the unique IDs. 
+        - Used to identify the individual combination of hyperparameter. 
+        - IDs have form `model_code`-number (if code is LG, then LG-1, LG-2, ..., LG-n)
+        """
 
+        ## check grid has a truthy value
         if self.grid is None:
             raise AttributeError(f"Expected a dictionary, but got None instead, from grid attribute, received: {self.grid}")
         
+        ## check that value has a length greater than one 
         if len(self.grid) < 1:
             raise AttributeError("Expected a populated dictionary, but received an empty dictionary instead")
-            
+        
+        
         num_params = range(1, len(self.grid) + 1)
 
+        ## IDs use model_code with a dash then a number. 
         return [self.model_code + "-" + str(num) for num in num_params]
     
 
     def parse_param_dicts(self) -> dict:
+        """ Parses the Dictionary of hyperparametrics to a long format Dictionary. 
+        Returns a dictionary with three keys ('model_id', 'param' and 'value'). 
+        Used to generate a CSV file that can handle different number of hyperparameters.
+        """
 
         if self.grid is None:
             raise AttributeError("Expected a dictionary, but got None instead, from grid attribute")
@@ -59,13 +95,20 @@ class Hyperparametres():
         if self.param_ids is None:
             raise AttributeError("Expected a dictionary, but got None instead, from grid attribute")
         
+        ## pair up the unique IDs with the combinations of hyperparameters
         params_with_id = list(zip(self.param_ids, self.grid))
 
+        ## define the output dictionary
         parsed_dict = {"model_id" : [], 
                        "param" : [], 
                        "value" : []}
 
+        ## iterate over the models
         for model in params_with_id:
+
+            ## model is ["model_id", {dict of params} ]
+            ## some models can have several hyperparameters, all get parsed into the 
+            ## same three 'columns'
             for param, value in model[1].items():
                 parsed_dict["model_id"].append(model[0])
                 parsed_dict["param"].append(param)
@@ -74,6 +117,8 @@ class Hyperparametres():
         return parsed_dict
                 
     def generate_params_dataframe(self) -> pd.DataFrame:
+        """ Simply converts the Dictionary of Hyperparameters into a Pandas.DataFrame. 
+        """
 
         param_dict = self.parse_param_dicts()
 
@@ -81,9 +126,13 @@ class Hyperparametres():
 
 
     def save_as_csv(self, folder:str) -> None:
+        """ Saves a CSV file in `folder` with name: `model_name`.csv
+        """
 
         df = self.generate_params_dataframe()
 
+        ## incase the folder is supplied like "output/"
+        ## the format "output//" might cause an issue
         if folder.endswith("/"):
             folder = folder.rstrip("/")
 
@@ -102,7 +151,7 @@ class Hyperparametres():
 ## and allow for more complex validations or conditions. 
 class Model():
     
-    def __init__(self, model, params:Hyperparametres, folds, n_jobs:int = 1,  **kwargs) -> None:
+    def __init__(self, model, params:Hyperparameters, folds, n_jobs:int = 1,  **kwargs) -> None:
         
         if not is_classifier(model):
             raise ValueError("model should be a classifer from sci-kit learn!")

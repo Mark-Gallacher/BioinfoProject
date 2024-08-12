@@ -1,7 +1,7 @@
 ## My Classes
 from Pipeline import Pipeline
 from Model import Model
-from Model import Hyperparametres
+from Model import Hyperparameters
 from Metrics import Metric, ConfusionMetrics
 
 ## Models
@@ -154,16 +154,16 @@ metrics.update(confusion_scorers)
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 
 ## for Linear models - i.e Logistic Regression and SVM
-c_values = [0.001, 0.05, 0.01, 0.2, 0.03, 0.05, 0.07, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+c_values = [0.001, 0.005, 0.01, 0.2, 0.03, 0.05, 0.07, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 1, 10, 100]
 
 ## for RandomForest and Gradient Boosted Trees
 estimators = [50, 100, 300, 500, 1000]
 min_samples_splits = [4, 8, 16, 32, 64]
 min_samples_leaf = [2, 4, 8]
 max_features = [None, "sqrt"]
-max_depth = [None, 30]
+max_depth = [None, 5, 10, 20, 30]
 criterion = ["gini", "entropy"]
-learning_rate = [0.1, 0.2, 0.25, 0.3, 0.4, .5]
+learning_rate = [0.01, 0.05, 0.1, 0.25, 0.5]
 
 ## for K-nearest Neighbours
 n_neighbors = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40, 45, 50]
@@ -174,7 +174,7 @@ n_neighbors = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 3
 
 #### LogisticRegression ####
 ## penalty was None but that generated an error??
-log_reg_params = Hyperparametres(
+log_reg_params = Hyperparameters(
                 model_name = "LogisticRegression", 
                 model_code = "LG",
                 params = [ 
@@ -186,7 +186,7 @@ log_reg_params = Hyperparametres(
                  "l1_ratio" : [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]}
                 ])
 
-## Define the Type of Model with the Hyperparametres
+## Define the Type of Model with the Hyperparameters
 log_reg_model = Model(model = LogisticRegression,
                 params = log_reg_params,
                 solver = "saga",
@@ -197,7 +197,7 @@ log_reg_model = Model(model = LogisticRegression,
 
 
 #### K-Nearest Neighbours ####
-knn_params = Hyperparametres(
+knn_params = Hyperparameters(
             model_name = "KNearestNeighbours", 
             model_code = "KNN", 
             params = {
@@ -213,7 +213,7 @@ knn_model = Model(model = KNeighborsClassifier,
 
 
 #### Naive Bayes ####
-gnb_params = Hyperparametres(params = {}, 
+gnb_params = Hyperparameters(params = {}, 
                              model_name = "GaussianNaiveBayes", 
                              model_code = "GNB")
 
@@ -226,7 +226,7 @@ gnb_model = Model(model = GaussianNB,
 
 
 #### RandomForest ####
-rf_params = Hyperparametres(
+rf_params = Hyperparameters(
         model_name = "RandomForest", 
         model_code = "RF", 
         params = { 
@@ -248,7 +248,7 @@ rf_model = Model(model = RandomForestClassifier,
 
 
 #### ExtraTress ####
-erf_params = Hyperparametres(
+erf_params = Hyperparameters(
         model_name = "ExtraRandomForest", 
         model_code = "ERF", 
         params = { 
@@ -268,7 +268,7 @@ erf_model = Model(model = ExtraTreesClassifier,
 
 
 #### GradientBoosting Trees ####
-gb_params = Hyperparametres(
+gb_params = Hyperparameters(
         model_name = "GradientBoosting", 
         model_code = "GB", 
         params = {
@@ -284,12 +284,13 @@ gb_model = Model(model = GradientBoostingClassifier,
                  params = gb_params, 
                  n_jobs = threads, 
                  folds = folds, 
+                 n_iter_no_change = 10 
                  )
 
 
 
 #### SVM ####
-svc_params = Hyperparametres(
+svc_params = Hyperparameters(
          model_name = "SupportVectorMachine", 
          model_code = "SVM", 
          params = [
@@ -314,7 +315,7 @@ svc_model = Model(
          tol = 1e-4,
          class_weight = 'balanced')
 
-svc_params_2 = Hyperparametres(
+svc_params_2 = Hyperparameters(
             model_name = "LinearSVC", 
             model_code = "LSVM", 
             params = [
@@ -340,7 +341,7 @@ svc_model_2 = Model(
 
 
 #### Dummy Classifier
-dummy_params = Hyperparametres(model_name = "Dummy", 
+dummy_params = Hyperparameters(model_name = "Dummy", 
                                model_code= "Dum", 
                                params= {})
 

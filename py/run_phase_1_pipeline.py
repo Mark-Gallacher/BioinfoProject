@@ -1,7 +1,7 @@
 ## My Classes
 from Pipeline import Pipeline
 from Model import Model
-from Model import Hyperparametres
+from Model import Hyperparameters
 from Metrics import Metric, ConfusionMetrics
 
 ## Models
@@ -173,7 +173,7 @@ n_neighbors = [2, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40]
 
 #### LogisticRegression ####
 ## penalty was None but that generated an error??
-log_reg_params = Hyperparametres(
+log_reg_params = Hyperparameters(
                 model_name = "LogisticRegression", 
                 model_code = "LG",
                 params = [ 
@@ -185,7 +185,7 @@ log_reg_params = Hyperparametres(
                  "l1_ratio" : [.2, .4, .6, .8, 1]}
                 ])
 
-## Define the Type of Model with the Hyperparametres
+## Define the Type of Model with the Hyperparameters
 log_reg_model = Model(model = LogisticRegression,
                 params = log_reg_params,
                 solver = "saga",
@@ -196,7 +196,7 @@ log_reg_model = Model(model = LogisticRegression,
 
 
 #### K-Nearest Neighbours ####
-knn_params = Hyperparametres(
+knn_params = Hyperparameters(
             model_name = "KNearestNeighbours", 
             model_code = "KNN", 
             params = {
@@ -212,7 +212,7 @@ knn_model = Model(model = KNeighborsClassifier,
 
 
 #### Naive Bayes ####
-gnb_params = Hyperparametres(params = {}, 
+gnb_params = Hyperparameters(params = {}, 
                              model_name = "GaussianNaiveBayes", 
                              model_code = "GNB")
 
@@ -225,7 +225,7 @@ gnb_model = Model(model = GaussianNB,
 
 
 #### RandomForest ####
-rf_params = Hyperparametres(
+rf_params = Hyperparameters(
         model_name = "RandomForest", 
         model_code = "RF", 
         params = { 
@@ -247,7 +247,7 @@ rf_model = Model(model = RandomForestClassifier,
 
 
 #### GradientBoosting Trees ####
-gb_params = Hyperparametres(
+gb_params = Hyperparameters(
         model_name = "GradientBoosting", 
         model_code = "GB", 
         params = {
@@ -268,7 +268,7 @@ gb_model = Model(model = GradientBoostingClassifier,
 
 
 #### SVM ####
-svc_params = Hyperparametres(
+svc_params = Hyperparameters(
          model_name = "SupportVectorMachine", 
          model_code = "SVM", 
          params = [
@@ -289,7 +289,7 @@ svc_model = Model(
          tol = 1e-4,
          class_weight = 'balanced')
 
-svc_params_2 = Hyperparametres(
+svc_params_2 = Hyperparameters(
             model_name = "LinearSVC", 
             model_code = "LSVM", 
             params = [
@@ -315,7 +315,7 @@ svc_model_2 = Model(
 
 
 #### Dummy Classifier
-dummy_params = Hyperparametres(model_name = "Dummy", 
+dummy_params = Hyperparameters(model_name = "Dummy", 
                                model_code= "Dum", 
                                params= {})
 
