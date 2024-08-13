@@ -157,13 +157,16 @@ metrics.update(confusion_scorers)
 c_values = [0.001, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.05, 0.07, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 1, 3, 10, 30, 100]
 
 ## for RandomForest and Gradient Boosted Trees
-estimators = [50, 100, 300, 500, 1000]
-min_samples_splits = [2, 4, 8, 16, 32]
-min_samples_leaf = [1, 4]
+estimators = [50, 100, 500, 1000]
+min_samples_splits = [5, 8, 10, 20, 40]
+min_samples_leaf = [1, 4, 8]
 max_features = [None, "sqrt"]
-max_depth = [None, 4, 8, 16, 32]
+max_depth = [None, 5, 10, 30]
 criterion = ["gini", "entropy"]
-learning_rate = [0.05, 0.1, 0.2, 0.4]
+learning_rate = [0.05, 0.1, 0.2]
+
+## 1,440 models for GB
+## 1,920 models for RF
 
 ## for K-nearest Neighbours
 n_neighbors = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 20, 25, 30, 35, 40, 45, 50]
