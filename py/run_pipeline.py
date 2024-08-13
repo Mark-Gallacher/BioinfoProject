@@ -154,7 +154,7 @@ metrics.update(confusion_scorers)
 ##### ~~~~~~~~~~~~~~~~~~~~ #####
 
 ## for Linear models - i.e Logistic Regression and SVM
-c_values = [0.001, 0.005, 0.01, 0.2, 0.03, 0.05, 0.07, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 1, 10, 100]
+c_values = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 1, 10, 100]
 
 ## for RandomForest and Gradient Boosted Trees
 estimators = [50, 100, 300, 500, 1000]
@@ -295,14 +295,17 @@ svc_params = Hyperparameters(
          model_code = "SVM", 
          params = [
             {"kernel" : ["linear"],
-             "C" : c_values }, 
+             "C" : c_values, 
+             "class_weight" : [None, "balanced"]}, 
              {"kernel": ["rbf", "sigmoid"],
              "C" : c_values, 
-             "gamma" : ["scale", "auto"]}, 
+             "gamma" : ["scale", "auto"], 
+             "class_weight" : [None, "balanced"]}, 
              {"kernel": ["poly"], 
               "degree": [2, 3, 4], 
              "C" : c_values, 
-             "gamma" : ["scale", "auto"]} 
+             "gamma" : ["scale", "auto"],
+             "class_weight" : [None, "balanced"]} 
             ])
 
 svc_model = Model(
@@ -312,19 +315,22 @@ svc_model = Model(
          folds = folds, 
          max_iter = 10000, 
          cache_size = 2000, 
-         tol = 1e-4,
-         class_weight = 'balanced')
+         tol = 1e-4)
 
 svc_params_2 = Hyperparameters(
             model_name = "LinearSVC", 
             model_code = "LSVM", 
             params = [
                 {"penalty" : ["l2"], 
-                 "loss" : ["hinge", "squared_hinge"],
-                 "C" : c_values}, 
-                {"penalty" : ["l1"], 
+                 "loss" : ["hinge"],
+                 "C" : c_values, 
+                 "dual" : [True], 
+                 "class_weight" : [None, "balanced"]}, 
+                {"penalty" : ["l1", "l2"], 
                  "loss" : ["squared_hinge"],
-                 "C" : c_values}
+                 "C" : c_values, 
+                "dual" : [False], 
+                 "class_weight" : [None, "balanced"]}
                 ])
 
 svc_model_2 = Model(
@@ -333,11 +339,7 @@ svc_model_2 = Model(
             n_jobs = threads, 
             folds = folds, 
             max_iter = 10000, 
-            dual = True, 
-            tol = 1e-4,
-            class_weight = 'balanced')
-            
-
+            tol = 1e-3)
 
 
 #### Dummy Classifier
