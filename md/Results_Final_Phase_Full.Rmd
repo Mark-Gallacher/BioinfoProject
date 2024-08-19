@@ -1,0 +1,1481 @@
+---
+title: "Results (Full Data)"
+author: '2466057'
+date: "2024-06-03"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    css: "style.css"
+    df_print: "paged"
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      collapse = TRUE, 
+                      fig.width = 10, 
+                      fig.height = 8,
+                      dpi = 120, 
+                      fig.path = "./figures/result_draft/", 
+                      cache.path = "./cache/result_draft/",
+                      comment = "")
+
+```
+
+## Overview
+
+---
+
+Trained 7 machine learning models and one dummy classifier. The latter always predicts the most frequent class. This could provide some meaningful comparisons, for example if we plotted the difference between a model and the dummy. Although it is removed for most graphs for now. 
+
+The seven models, and their 2/3 letter codes are shown below. 
+
+```{r library and functions}
+#| message = FALSE, 
+#| warning = FALSE, 
+#| error = FALSE 
+
+library(tidyverse)
+library(here)
+
+## script to load in functions and variables (including data)
+source(here("r/setup_full.R"))
+
+## define a custom ggplot theme - set as default
+theme_set(report_theme(base_size = 10))
+
+save_graph <- function(graph, name, path = "", width = 8, height = 10){
+  
+  ## specify the folder, since we are creating a lot of graphs
+  ## the specify the size
+  ## ensure background is white
+  ggplot2::ggsave(filename = paste0(name, ".png"), 
+         plot = graph, 
+         path = here::here("figures/full", path), 
+         width = width, height = height, 
+         # dpi = 320, 
+         bg = "#FFFFFF")
+  
+}
+
+## all of the models generated
+
+for (name in names(all_names)){
+  cat(paste0(name, " - ", all_names[name], "\n"))
+}
+
+```
+
+
+
+```{r}
+## merge the metric dataframes together
+metrics_df <- merge_metric_dfs() |> 
+  filter(!metric_type %in% c("f2", "f3", "f4"))
+
+## summarise the metrics by the model_code, i.e. across their models for each of K-folds
+metric_code <- generate_rel_metrics(metric_df, "model_code")
+
+## summarise the metrics by the moodel_id, i.e across the K-folds (preserving different model hyperparameters)
+metric_id <- generate_rel_metrics(metric_df, "model_id") |> 
+  mutate(model_code = str_extract(model_id, "[A-Z]+"))
+
+## columns for macro, micro and weighted averaging
+metrics_wide <- metrics_df |> 
+  select(-metric) |> 
+  filter(average_type != "None") |>
+  summarise(.by = c(model_code, model_id, average_type, metric_type), 
+            mean_score = mean(score, na.rm = T)) |> 
+  pivot_wider(names_from = average_type, values_from = mean_score) |> 
+  rename_with(str_to_lower)
+
+metrics_none_df <- metrics_df |> 
+  select(-metric) |> 
+  filter(average_type == "None") |>
+  summarise(.by = c(model_code, model_id, average_type, metric_type), 
+            mean_score = mean(score, na.rm = T)) |> 
+  pivot_wider(names_from = average_type, values_from = mean_score) |> 
+  rename_with(str_to_lower)
+```
+
+The data consisted of all the hypertensive subtypes (excluding the healthy control), and not all the microRNA variables were used. First, they were filtered via Recursive Feature Elimination (RFE), where the base model was a Gradient Boosted Tree. This left 131 features, although the RFE could be improved by using an ensemble of various models, as we run the risk of over-fitting the Gradient Boosted Trees. For example, when we used Random Forest for RFE, it selected only 87 features. This is not an insignificant difference and should be explored in a bit more detail (for a later date though).  
+
+Six of the seven types of models (not Gaussian Naive Bayes) were trained across a wide range of hyperparameters to obtain a collect of models of varying quality. Each model was evaluated with a battery of metrics which can be compared in two main groups. Firstly, we can look at the **metric type**, like precision, recall, F1-score or accuracy. Secondly, we could look at how it generalises to the multiclass problem, either through Micro, Macro or Weighted averaging of the values from a confusion matrix, i.e the **averaging method** . Some metrics natively handle the multiclass setting, like accuracy, Matthew Correlation Coefficient (MCC) and Cohen Kappa. Here, these are described to have an averaging method of "None", although "NA" might be more clear. More precisely, most metrics are formed as a combination of an *averaging method* and a *metric type*, like Macro Precision, Micro F1-score. 
+
+Micro-averaging, which sums the False Positives, True Positive (TP), etc, across each class then performs the calculation. For recall, all the True positives are summed and then divided by the sum of True Positives and False Negatives (FN), ie TP / (TP + FN). In comparison, Macro-averaging calculates the metric for each class, then obtains the means. Concretely, Macro-Recall would find the recall for each class first, then find the mean. 
+
+### Distribution of Metric Values
+
+
+```{r}
+.dist_1 <- metrics_df |> 
+  filter(model_code != "DUM") |> 
+  ggplot(aes(score)) +
+  geom_density(aes(fill = "Overall"), alpha = .5) +
+  geom_density(aes(fill = model_code, colour = model_code), alpha = .1, linewidth = 1) +
+  scale_x_continuous("Metric Score")+
+  scale_y_discrete("")+
+  scale_fill_manual("Model",
+                      values = c(model_colours, "Overall" = "black"),  
+                      guide = guide_legend(override.aes = list(shape = 15, size = 2, alpha = 1))) +
+  scale_color_manual(values = c(model_colours, "Overall" = "black")) +
+  report_theme(base_size = 12)+
+  guides(colour = "none") +
+  ggtitle("Overall Distribution of Metrics by Averaging Type") +
+  facet_wrap(~average_type, scales = "free")
+
+.dist_1
+```
+
+
+```{r, eval=FALSE}
+
+save_graph(graph = .dist_1, name = "Metric_Distributions", width = 10, height = 8)
+
+```
+
+
+```{r}
+.dist_2 <- metric_code |> 
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(rel_mean)) +
+  geom_density(aes(fill = "Overall"), alpha = .5) +
+  geom_density(aes(fill = model_code, colour = model_code), alpha = .1, linewidth = 1)+
+  scale_x_continuous("Relative Metric Score")+
+  scale_y_discrete("")+
+  scale_fill_manual("Model",
+                      values = c(model_colours, "Overall" = "black"),  
+                      guide = guide_legend(override.aes = list(shape = 15, size = 2, alpha = 1))) +
+  scale_color_manual(values = c(model_colours, "Overall" = "black")) +
+  report_theme(base_size = 12)+
+  guides(colour = "none")+
+  ggtitle("Overall Distribution of Relative Metric Scores") 
+  # facet_wrap(~average_type, scales = "free")
+
+.dist_2 
+
+```
+
+```{r, eval=FALSE}
+
+save_graph(graph = .dist_2, name = "Relative_Metric_Distributions", width = 10, height = 8)
+
+```
+
+## Comparison of Metrics relative to the Mean {.tabset}
+
+---
+
+In order to compare the metrics to each other across the various models, the mean score of each model was found then obtained metric was divided by this mean. Consequently, a relative value of 1 indicates that metric is identical to the mean while values less than one indicate it is typically smaller than the mean (likely suggesting it is more conservative). Values greater than one can be interpreted as the opposite, indicating a more optimistic metric in general.
+
+On the X-axis we have all of model type and on the Y-axis we have the relative mean metric score. The values are coloured by their metric type in the first graph and their averaging method in the second. The latter has much clearer grouping, indicating the averaging method is very influential and have different levels of optimism/bias. 
+
+It is also worth pointing out that the most conservative metrics appear to be MCC and Cohen Kappa, which naturally generalise to the multiclass setting. 
+
+### Comparison of Metric Type
+
+```{r}
+
+.code_1 <- metric_code |> 
+  plot_model_metrics(metric_type, y_line = 1)
+
+.code_1
+```
+
+### Comparison of Averaging Method
+
+```{r}
+
+.code_2 <- metric_code |>
+  plot_model_metrics(average_type, y_line = 1)
+
+.code_2
+
+```
+
+## Comparison of Mean and Standard Deviation of Each Metric {.tabset}
+
+---
+
+### Colour by Metric Type
+
+With the relative mean and relative standard deviation on the X and Y axis, respectively, the metrics scores appear to cluster by their metrics, instead of by the model they came from. 
+
+```{r, cache = TRUE}
+  point_size = 2.5
+  main_line_width = 2
+  minor_line_width = 1.5
+
+.cluster_1 <- metric_id |>   
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = metric_type, group = metric))+
+  geom_point(size = point_size / 3, shape = 15, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width / 3) +
+  geom_vline(xintercept = 1, linewidth = minor_line_width / 3) +
+  scale_x_continuous("Relative Mean Score") +
+  scale_y_continuous("Relatiive SD Score") +
+  ggtitle("Comparing Metric Type Across Models") +
+  scale_colour_manual("Metric", 
+                      values = metric_colours, 
+                      labels = metric_labels, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+
+.cluster_1
+```
+
+### Colour by Averaging Method
+
+It is quite nice to see the clear clusters in the different the averaging methods. This likely indicates this is an important choice because of how different. 
+
+```{r, cache = TRUE}
+.cluster_2 <- metric_id |>   
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = average_type, group = metric))+
+  geom_point(size = point_size / 3, shape = 15, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width / 3) +
+  geom_vline(xintercept = 1, linewidth = minor_line_width / 3) +
+  scale_x_continuous("Relative Mean Score") +
+  scale_y_continuous("Relatiive SD Score") +
+  ggtitle("Comparing Averaging Method Across Models") +
+  scale_colour_manual("Averaging Method", 
+                      values = average_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+
+.cluster_2
+```
+
+### Colour by Model Type
+
+This was to illustrate the metrics cluster with values of the same metric rather than from the same model. If they clustered by model then comparisons would likely not be possible. 
+
+```{r, cache = TRUE}
+.cluster_3 <- metric_id |>   
+  filter(model_code != "DUM") |> 
+  parse_metric_column() |> 
+  ggplot(aes(x = rel_mean, y = rel_sd, colour = model_code, group = metric))+
+  geom_point(size = point_size / 3, shape = 15, alpha = .5) +
+  geom_hline(yintercept = 1, linewidth = minor_line_width / 3) +
+  geom_vline(xintercept = 1, linewidth = minor_line_width / 3) +
+  scale_x_continuous("Relative Mean Score") +
+  scale_y_continuous("Relatiive SD Score") +
+  ggtitle("Cluster of Metrics Across Models") +
+  scale_colour_manual("Model", 
+                      values = model_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 13)
+
+.cluster_3
+```
+
+```{r, eval=FALSE}
+
+walk2(
+  .x = list(.code_1, .code_2, .cluster_1, .cluster_2, .cluster_3),
+  .y = c("Relative_1", "Relative_2", "Cluster_1", "Cluster_2", "Cluster_3"),
+  .f = ~ save_graph(graph = .x, name = .y, width = 10, height = 8)
+     )
+
+```
+
+
+## Comparison of Models using Dummy Classifer {.tabset}
+
+---
+
+The Dummy classifier is configured to always predict the majority class, meaning it does not employ any information from the features. If a dummy classifier is achieving large values in a metric, then that metric is likely sensitive and over-emphasising the performance of the model due to the most frequent label. If the majority class was even larger, we would expect this metrics to equally become larger too. A metric that performs poorly for the dummy classifier is likely useful, as it displays a genuine model has made a considerably improvement that is not due to the imbalance of the data. Metrics like Cohen's Kappa and Matthew Correlation Coefficient, both have scores of zero, indicating they could be good candidates to assess the model with imbalanced data.  
+
+### Metric Scores of Dummy
+
+```{r}
+.dummy_1 <- metrics_df |> 
+  filter(model_code == "DUM") |> 
+  ggplot(aes(x = reorder(metric, score), y = score, fill = average_type)) +
+  stat_summary(fun = mean, geom = "bar") +
+  scale_x_discrete("Metric", labels = ~ str_replace_all(., "_", " ") |> str_to_title()) +
+  scale_y_continuous("Mean Score")+
+  scale_fill_manual("Averaging Method", 
+                      values = average_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  coord_flip() +
+  ggtitle("Metric Scores from Dummy Classifier") +
+  report_theme(15) 
+  
+.dummy_1
+```
+
+```{r}
+
+dum_df <- metrics_df |> 
+  filter(model_code == "DUM") |> 
+  summarise(.by = metric, dum_score = mean(score))
+
+
+diff_df <- metrics_df |> 
+  filter(model_code != "DUM") |> 
+  summarise(.by = c(model_code, average_type, metric_type, metric), 
+            mean_score = mean(score, na.rm = T)) |> 
+  inner_join(dum_df, by = "metric") |> 
+  mutate(
+    diff = mean_score - dum_score, 
+    rel_diff = mean_score / dum_score,
+    rel_inc = diff / (1 - dum_score)
+    )
+
+```
+
+### Absolute Difference {.tabset}
+
+The metric score for a model subtract the score from the dummy.
+
+#### By Averaging Method
+
+
+```{r}
+
+# diff_df |> 
+#   plot_folds_average("Micro", rel_inc)
+
+.dummy_2 <- diff_df |> 
+  plot_model_metrics(average_type, 
+                     y = diff, 
+                     y_title = "Absolute Difference from Dummy")
+
+.dummy_2
+```
+
+#### By Metric
+
+```{r}
+
+# diff_df |> 
+#   plot_folds_average("Micro", rel_inc)
+
+.dummy_3 <- diff_df |> 
+  filter(model_code != "ERF") |>
+  ggplot(aes(x = reorder(model_code, diff), 
+             y = diff,
+             colour = metric_type, 
+             group = metric_type))+
+  stat_summary(geom = "point", 
+               fun = "median",
+               position = position_dodge(.5), 
+               size = 4, 
+               shape = 15, 
+               fun.args = list(na.rm = T)) +
+  stat_summary(geom = "line", 
+               fun = "median",
+               position = position_dodge(.5), 
+               linewidth = 1,
+               linetype = 2, 
+               alpha = .5,
+               show.legend = F,
+               fun.args = list(na.rm = T))+
+  ggtitle("Difference in Metrics Between Models and Dummy")+
+  scale_x_discrete("Model")+
+  scale_y_continuous("Median Score")+
+  scale_colour_manual("Metric Type", 
+                        values = metric_colours, 
+                        labels = metric_labels, 
+                        guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 14) +
+  facet_wrap(~factor(average_type, levels = c("Macro", "None", "Micro", "Weighted")), scales = "fixed")
+
+.dummy_3
+```
+
+### Relative Difference {.tabset}
+
+The metric score of the model divided by the score from the dummy. A score of 1 is achieved when the model and dummy have the same value. Larger scores indicate larger positive changes in the metric score.
+
+#### By Averaging Method
+
+```{r}
+
+.dummy_4 <- diff_df |> 
+  plot_model_metrics(average_type, 
+                     y = rel_diff, 
+                     y_title = "Relative Difference from Dummy")
+
+.dummy_4
+```
+
+#### By Metric
+
+```{r}
+
+.dummy_5 <- diff_df |> 
+  plot_model_metrics(metric_type, 
+                     y = rel_diff, 
+                     y_title = "Relative Difference from Dummy")
+
+.dummy_5
+
+```
+
+### Relative to Maximum Difference {.tabset}
+
+The difference between the model and the dummy, divided by one minus the dummy score. For example, if the dummy has a score of 60%, that means the maximum increase that is possible is 40%. So we take the difference and divide by this maximum to see how much the model improves. A score of 1 denotes the model achieved 100% of the possible increase.
+
+#### By Averaging Method
+
+```{r}
+
+.dummy_6 <- diff_df |> 
+  plot_model_metrics(average_type, 
+                     y = rel_inc, 
+                     y_title = "Relative Difference from Maximum Increase")
+
+.dummy_6
+
+```
+
+#### By Metric
+
+```{r}
+
+.dummy_7 <- diff_df |> 
+  plot_model_metrics(metric_type, 
+                     y = rel_inc, 
+                     y_title = "Relative Difference from Maximum Increase")
+
+.dummy_7
+
+```
+
+```{r, eval=FALSE}
+
+walk2(
+  .x = list(.dummy_1, .dummy_2, .dummy_3, .dummy_4, .dummy_5, .dummy_6, .dummy_7), 
+  .y = c("Dummy_1", "Dummy_2", "Dummy_3", "Dummy_4", "Dummy_5", "Dummy_6", "Dummy_7"),
+  .f = ~ save_graph(.x, .y, width = 10, height = 8)
+)
+
+```
+
+
+
+## Comparison of Models Using Metrics* {.tabset}
+
+---
+
+> *Note: these graphs are not in their final form
+
+The five folds used in the cross validation are the same across all the models, meaning a comparison is more appropriate compared to if the folds were completely random. It is clear the best type of model is the Gradient Boosted Tree whilst Gaussian Naive Bayes appears the weakest. This could be partially explained by Gradient Boosting having the most number of individual models, due to having several hyperparameters. The hyperparameter tuning of these models have yet to be finished. Currently, a wide range of hyperparameters have been explored but a more narrow and focused scope could improve model performance. 
+
+### Micro Averaging {.tabset}
+
+#### Mean Score
+```{r}
+
+.micro_mean <- plot_folds_func(metrics_df, "Micro", func = "mean")
+
+.micro_mean
+```
+
+#### Median Score
+
+```{r}
+
+.micro_med <- plot_folds_func(metrics_df, "Micro", func = "median")
+
+.micro_med
+```
+
+#### Max Score
+
+```{r}
+
+.micro_max <- plot_folds_func(metrics_df, "Micro", func = "max")
+
+.micro_max
+```
+
+
+### Macro Averaging {.tabset}
+
+#### Mean Score
+```{r}
+
+.macro_mean <- plot_folds_func(metrics_df, "Macro", func = "mean")
+
+.macro_mean
+
+```
+
+#### Median Score
+
+```{r}
+
+.macro_med <- plot_folds_func(metrics_df, "Macro", func = "median")
+
+.macro_med
+
+```
+
+#### Max Score
+
+```{r}
+
+.macro_max <- plot_folds_func(metrics_df, "Macro", func = "max")
+
+.macro_max
+
+```
+
+### Weighted Averaging {.tabset}
+
+#### Mean Score
+```{r}
+
+.weight_mean <- plot_folds_func(metrics_df, "Weighted", func = "mean")
+
+.weight_mean
+
+```
+
+#### Median Score
+
+```{r}
+
+.weight_med <- plot_folds_func(metrics_df, "Weighted", func = "median")
+
+.weight_med
+
+```
+
+#### Max Score
+
+```{r}
+
+.weight_max <- plot_folds_func(metrics_df, "Weighted", func = "max")
+
+.weight_max
+
+```
+
+### No Averaging {.tabset}
+
+#### Mean Score
+```{r}
+
+.none_mean <- plot_folds_func(metrics_df, "None", func = "mean")
+
+.none_mean
+
+```
+
+#### Median Score
+
+```{r}
+
+.none_med <- plot_folds_func(metrics_df, "None", func = "median")
+
+.none_med
+
+```
+
+#### Max Score
+
+```{r}
+
+.none_max <- plot_folds_func(metrics_df, "None", func = "max")
+
+.none_max
+
+```
+
+```{r, eval=FALSE}
+
+walk2(
+  .x = list(.micro_mean, .micro_med, .micro_max, 
+            .macro_mean, .macro_med, .macro_max, 
+            .weight_mean, .weight_med, .weight_max, 
+            .none_mean, .none_med, .none_max), 
+  .y = paste0(
+    rep(c("Micro", "Macro", "Weighted", "None"), each = 3), "_", 
+    rep(c("Mean", "Median", "Max"), times = 4), "_folds"), 
+  .f = ~ save_graph(graph = .x, name = .y, width = 10, height = 8)
+      )
+
+```
+
+
+
+## Comparison of Top Model Using Metrics {.tabset}
+
+---
+
+During the hyperparameter tuning stage, multiple models were created. However, not all types of models created the same number of models, as some forms of models have limited hyperparameters to tune, therefore there is less combinations of hyperparameters to explore. This means for models like Random Forest and Gradient Boosting Trees, which have several hyperparameters, are more likely to have a better model because they have more models. Additionally, a practitioner is not interested in the mean performance of a group of models, but the maximum score achieved by an individual model to select to appropriate model or hyperparameters. Therefore, by selecting the best 10 models allows a more fair and realistic comparison between the models. This also prevents poorly configured models to be ignored, and not underestimate the performance of the models. Since we are using several metrics, we select the top 10 scores for every metric. Then, we obtain the other metrics for this model - to see how the best accuracy compares to the best macro-precision, for example. 
+
+```{r}
+num_of_models = 10
+
+## the n best models for each metric - the best macro precision might not have the best micro recall
+top_metrics <- metrics_df |> 
+  filter(model_code != "DUM") |> 
+  summarise(.by = c(metric, model_id, model_code), 
+            mean_score = mean(score, na.rm = T)) |> 
+  slice_max(order_by = mean_score, 
+            by = c(model_code, metric), 
+            n = num_of_models) 
+
+## the best models for each metric - the best macro precision might not have the best micro recall
+best_metrics <- metrics_df |> 
+  filter(model_code != "DUM") |> 
+  summarise(.by = c(metric, model_id, model_code), 
+            mean_score = mean(score, na.rm = T)) |> 
+  slice_max(order_by = mean_score, 
+            by = c(model_code, metric), 
+            n = 1) 
+
+## add metrics back on - so if model had best MCC, and the other metrics are missing, add them back in from original df.
+top_metrics_df <- top_metrics |> 
+  left_join(metrics_df, by = c("metric", "model_id", "model_code"))
+
+## remove some unneeded columns - as a new object 
+top_metrics_df_2 <- top_metrics_df |> 
+  select(-score, -id, -fold) |> 
+  distinct()
+
+
+## summarise the metrics by the moodel_id, i.e across the K-folds (preserving different model hyperparameters)
+top_metric_code <- generate_rel_metrics(top_metrics_df_2, "model_code")
+
+```
+
+### Overall Metric Behaviour {.tabset}
+
+Since the relative metric scores are based on the pool of metric values achieved by all the models, and we have removed the majority of the models, recalculating the relative scores should help ensure the behaviour highlighted previously, is consistent in our subset here. 
+
+#### Relative Metric Scores (by Average Type)
+
+```{r}
+
+.top_code_1 <- top_metric_code |>
+  plot_model_metrics(colour = average_type, y_line = 1)
+
+.top_code_1
+
+```
+
+#### Relative Metric Scores (by Metric Type)
+
+```{r}
+
+.top_code_2 <- top_metric_code |>
+  plot_model_metrics(colour = metric_type, y_line = 1)
+
+.top_code_2
+
+```
+
+#### Mean Metric Scores (by Metric Type)
+
+```{r}
+
+.top_code_3 <- top_metric_code |>
+  plot_model_metrics(colour = metric_type, y = mean_metric, y_title = "Mean Metric Value")
+
+.top_code_3
+
+```
+
+#### Mean Metric Scores (by Average Type)
+
+```{r}
+
+.top_code_4 <- top_metric_code |>
+  plot_model_metrics(colour = average_type, y = mean_metric, y_title = "Mean Metric Value")
+
+.top_code_4
+
+```
+
+### Spread of Metric Values {.tabset}
+
+#### Simply Showing Points
+```{r}
+# top_metrics_df_2 |>
+#   plot_model_metrics(colour = average_type,
+#                      y = mean_score,
+#                      y_title = "Mean Score")
+
+.top_spread_1 <- top_metrics_df_2 |>
+  ggplot(aes(x = model_code,
+           y = mean_score,
+             colour = average_type))+
+  # geom_violin(alpha = .4)+
+  geom_jitter(size = point_size, shape = 15, alpha = .8)+
+  scale_x_discrete("Model Type") +
+  scale_y_continuous("Mean Score") +
+  ggtitle("Comparing Averaging Methods Across Models") +
+  scale_colour_manual("Averaging Method",
+                      values = average_colours,
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1)))+
+  report_theme(base_size = 13)
+
+.top_spread_1
+
+```
+
+#### Linerange Plot (By Model)
+
+I wanted to display the above graphs in a difference way. I think another important thing to consider is the variation in the values from the metrics between the different folds. Looking at the metrics that do not require an averaging method, they appear less variable while the three other types of averaging look more variable. Plotting the mean value across the folds, with the maximum and the minimum would allow us to compare the variability
+
+```{r}
+.top_spread_2 <- top_metrics_df_2 |> 
+  # filter(average_type != "None") |>
+  ggplot(aes(x = average_type, 
+             y = mean_score,
+             colour = model_code))+
+  stat_summary(geom = "pointrange", 
+               fun = "mean",
+               fun.min = "min", 
+               fun.max = "max",
+               position = position_jitter(.15), 
+               size = 2, 
+               shape = 15, 
+               linewidth = 1, 
+               fun.args = list(na.rm = T)) +
+  scale_x_discrete("Average Type")+
+  scale_y_continuous("Mean Score")+
+  scale_colour_manual("Model", 
+                        values = model_colours, 
+                        guide = guide_legend(override.aes = list(shape = 15, size = 2, alpha = 1))) +
+  report_theme(base_size = 12)
+
+.top_spread_2
+```
+
+#### Linerange Plot (By Average Type)
+
+```{r}
+.top_spread_3 <- top_metrics_df_2 |> 
+  # filter(average_type != "None") |>
+  ggplot(aes(x = reorder(model_code, mean_score), 
+             y = mean_score,
+             colour = average_type))+
+  stat_summary(geom = "pointrange", 
+               fun = "median",
+               fun.min = "min", 
+               fun.max = "max",
+               position = position_dodge(.5), 
+               size = 1.5, 
+               shape = 15, 
+               linewidth = 1, 
+               fun.args = list(na.rm = T)) +
+  ggtitle("Range of Metric Scores Across the Top 10 Models")+
+  scale_x_discrete("Model")+
+  scale_y_continuous("Median Score")+
+  scale_colour_manual("Average Type", 
+                        values = average_colours, 
+                        guide = guide_legend(override.aes = list(shape = 15, size = 2, alpha = 1))) +
+  report_theme(base_size = 14)
+
+.top_spread_3
+
+```
+
+#### Linerange Plot (By Metric Type)
+
+```{r}
+.top_spread_4 <- top_metrics_df_2 |> 
+  filter(model_code != "ERF") |>
+  ggplot(aes(x = reorder(model_code, mean_score), 
+             y = mean_score,
+             colour = metric_type, 
+             group = metric_type))+
+  stat_summary(geom = "point", 
+               fun = "median",
+               position = position_dodge(.5), 
+               size = 4, 
+               shape = 15, 
+               fun.args = list(na.rm = T)) +
+  stat_summary(geom = "line", 
+               fun = "median",
+               position = position_dodge(.5), 
+               linewidth = 1,
+               linetype = 2, 
+               alpha = .5,
+               show.legend = F,
+               fun.args = list(na.rm = T))+
+  ggtitle("Median Metric Scores Across the Top 10 Models")+
+  scale_x_discrete("Model")+
+  scale_y_continuous("Median Score")+
+  scale_colour_manual("Metric Type", 
+                        values = metric_colours, 
+                        labels = metric_labels, 
+                        guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(base_size = 14) +
+  facet_wrap(~factor(average_type, levels = c("Macro", "None", "Micro", "Weighted")), scales = "fixed")
+
+.top_spread_4
+```
+
+```{r, eval = FALSE}
+
+walk2(
+  .x = list(.top_code_1, .top_code_2, .top_code_3, .top_code_4, 
+            .top_spread_1, .top_spread_2, .top_spread_3, .top_spread_4), 
+  .y = c("Top_Relative_1", "Top_Relative_2", "Top_Abs_1", "Top_Abs_2", 
+         "Top_Points", "Top_Linerange_1", "Top_Linerange_2", "Top_Linerange_3"), 
+  .f = ~ save_graph(graph = .x, name = .y, width = 10, height = 8)
+      )
+
+```
+
+
+### Performance Across the Folds {.tabset}
+
+#### Micro Averaging
+
+```{r}
+
+plot_folds_func(top_metrics_df, "Micro", func = "mean")
+
+```
+
+
+#### Macro Averaging
+
+```{r}
+
+# top_metrics_df |>
+#   plot_folds_func("Macro", func = "max")
+
+plot_folds_func(top_metrics_df, "Macro", func = "mean")
+
+```
+
+#### Weighted Averaging
+
+```{r}
+
+# top_metrics_df |>
+#   plot_folds_func("Weighted", func = "max")
+
+plot_folds_func(top_metrics_df, "Weighted", func = "mean")
+
+```
+
+#### No Averaging
+
+```{r}
+
+top_metrics_df |>
+  plot_folds_func("None", func = "mean")
+
+```
+
+
+### Heatmap of Maximum Values
+
+```{r}
+
+top_metrics_df_2 |> 
+  summarise(.by = c(metric, model_code), 
+            max_score = max(mean_score, na.rm = T)) |> 
+  mutate(metric = str_to_title(str_replace(metric, "_", " "))) |> 
+  ggplot(aes(x = reorder(model_code, max_score), 
+             y = reorder(metric, max_score), 
+             fill = max_score))+
+  geom_tile(colour = "white") +
+  geom_text(aes(label = round(max_score, 2)),
+            size = 6, 
+            colour = "white")+
+  labs(title = "Best Metric Score Across Models") +
+  scale_x_discrete("Model")+
+  scale_y_discrete("Metric", )+
+  scale_fill_gradientn("Max Score",
+                       colours = c("blue", "grey70", "red"), 
+                       guide = guide_colourbar()) +
+  report_theme(15, legend.key.width = unit(2, "cm"))
+
+
+```
+
+
+## Correlation of Metrics {.tabset}
+
+---
+
+### Pearson's r
+
+```{r}
+
+.corr_1 <- plot_corr_heatmap(metrics, "pearson")
+
+.corr_1
+
+```
+
+### Spearman's r
+
+```{r}
+
+plot_corr_heatmap(metrics, "spearman")
+
+```
+
+### Pearson's r (top models)
+
+This uses the subset of the best models.
+
+```{r}
+top_ids <- top_metrics_df |> 
+  pluck("model_id")
+
+.corr_2 <- metrics |> 
+  filter(model_id %in% top_ids) |> 
+  plot_corr_heatmap("pearson")#
+
+.corr_2
+```
+
+### Spearmans's r (top models)
+
+This uses the subset of the best models.
+
+```{r}
+top_ids <- top_metrics_df |> 
+  pluck("model_id")
+
+metrics |> 
+  filter(model_id %in% top_ids) |> 
+  plot_corr_heatmap("spearman")
+```
+
+## Confusion Matrix
+
+---
+
+<!-- ### Testing Boxplots for the Values from a Confusion Matrix  -->
+
+### All Models {.tabset}
+
+```{r}
+
+conf_long <- confusion |>
+  filter(!model_code %in% c("DUM", "ERF")) |> 
+  pivot_longer(
+    cols = starts_with(c("tp_", "fp_", "tn_", "fn_")),
+    names_to = c("metric", "group"), 
+    values_to = "value", 
+    names_sep = "_"
+    ) |> 
+  replace_na(list(value = 0))
+
+conf_wide <- conf_long |> 
+  pivot_wider(id_cols = c(id, model_code, model_id, group), 
+              names_from = metric, 
+              values_from = value) |> 
+  mutate(
+    pos = tp + fn, 
+    neg = fp + tn, 
+    tpr = tp / pos, 
+    fpr = fp / neg, 
+    fnr = fn / pos, 
+    tnr = tn / neg,
+    precision = tp / (tp + fp), 
+    recall = tp / (tp + fn),
+    f1_score = (2 * precision * recall) / (precision + recall),
+    npv = tn / (tn + fn), ## negative positive value
+    fdr = fp / (tp + fp), ## false discovery rate
+    fomr = fn / (tn + fn) ## FOR - false discovery rate
+  ) |> 
+  mutate(
+    ## ensure there are no NA values - these are just zero because we have divided by zero somewhere
+    across(tpr:fomr, ~ if_else(is.na(.), 0, .))
+    )
+
+conf_metrics <- conf_wide |>
+  select(-tp, -fp, -tn, -fn) |> 
+  pivot_longer(
+    cols = c(tpr, fpr, tnr, fnr, precision, recall, f1_score, npv, fdr, fomr), 
+    names_to = "metric", 
+    values_to = "score" 
+  )
+```
+
+
+```{r}
+
+stats <- c(
+  "TP" = "True Positive",
+  "FP" = "False Positive",
+  "TN" = "True Negative",
+  "FN" = "False Negative",
+  "ACCURACY" = "Accuracy", 
+  "PRECISION" = "Precision",
+  "RECALL" = "Recall",
+  "F1_SCORE" = "F1-Score", 
+  "NPV" = "Negative Predictive Value", 
+  "FDR" = "False Discovery Rate",
+  "FOMR" = "False Omission Rate"
+)
+
+for (name in names(stats)){
+  cat(paste0(name, " - ", stats[name],  "\n"))
+}
+
+
+```
+
+```{r, cache=T}
+recall_precision_df <- conf_metrics |> 
+  filter(metric %in% c("precision", "recall")) |> 
+  mutate(metric = str_remove(metric, "_score")) |> 
+  ## summarise across the folds
+  summarise(.by = c(model_code, model_id, group, metric), 
+            mean_score = mean(score, na.rm = T)) |> 
+  ## get the best and worst score for a group - for each model
+  summarise(.by = c(model_code, model_id, metric),
+            max_score = max(mean_score, na.rm = T),
+            min_score = min(mean_score, na.rm = T)) |>
+  left_join(metrics_wide, by = c("model_code", "model_id", "metric" = "metric_type")) |> 
+  filter(if_any(c(macro, micro, weighted),  ~ !is.na(.))) |> 
+  select(-weighted) |>
+  mutate(metric = str_to_title(metric)) |> 
+  pivot_longer(cols = c(max_score, min_score, macro, micro), 
+               names_to = "mode", 
+               values_to = "value")
+
+f1_score_df <- conf_metrics |> 
+  filter(metric %in% "f1_score") |> 
+  ## summarise across the folds
+  summarise(.by = c(model_code, model_id, group, metric), 
+            mean_score = mean(score, na.rm = T)) |> 
+  ## get the best and worst score for a group - for each model
+  summarise(.by = c(model_code, model_id, metric),
+            max_score = max(mean_score, na.rm = T), 
+            min_score = min(mean_score, na.rm = T)) |> 
+  mutate(metric = str_remove(metric, "_score")) |> 
+  left_join(metrics_wide, by = c("model_code", "model_id", "metric" = "metric_type")) |> 
+  filter(if_any(c(macro, micro, weighted),  ~ !is.na(.))) |> 
+  select(-weighted) |>
+  mutate(metric = str_to_title(metric)) |> 
+  pivot_longer(cols = c(min_score, max_score, macro, micro), 
+               names_to = "mode", 
+               values_to = "value")
+
+```
+
+#### Confusion Matrix Values for Each Model
+
+```{r}
+
+conf_long |> 
+  mutate(metric = str_to_upper(metric)) |> 
+  ggplot(aes(x = model_code, y = value, colour = group))+
+  stat_summary(geom = "pointrange", 
+             fun = "mean",
+             fun.min = "min", 
+             fun.max = "max",
+             position = position_jitter(.25), 
+             size = 1.5, 
+             shape = 15, 
+             linewidth = 1, 
+             fun.args = list(na.rm = T)) +
+  scale_y_continuous("Count") +
+  scale_x_discrete("Model") +
+  ggtitle("Values from Confusion Matrix") +
+  scale_colour_manual("Subtype", values = subtype_colours) +
+  facet_wrap(~metric, nrow = 2, scales = "free_y") +
+  report_theme(12)
+
+```
+
+
+#### Precision and Recall
+
+```{r, cache=T}
+recall_precision_df |>
+  mutate(mode = str_to_title(mode)) |> 
+  ggplot(aes(x = reorder(model_code, value), y = value, colour = mode, group = mode)) +
+  stat_summary(geom = "line", 
+               fun = mean, 
+               linewidth = 2) +
+  scale_x_discrete("Model") +
+  scale_y_continuous("Metric Score") +
+  scale_colour_manual("Metric",
+                      values = c(average_colours, "Min_score" = "darkcyan", "Max_score" = "darkblue"),
+                      labels = c("Max_score" = "Max Score",
+                                 "Min_score" = "Min Score",
+                                 "Macro" = "Macro",
+                                 "Micro" = "Micro"))+
+  facet_wrap(~metric) +
+  report_theme(12)
+```
+
+#### F1-Score
+
+```{r}
+
+f1_score_df |>
+  mutate(mode = str_to_title(mode)) |> 
+  ggplot(aes(x = model_code,  y = value, colour = mode, group = mode)) +
+  stat_summary(geom = "line", 
+               fun = mean, 
+               linewidth = 2) +
+  scale_x_discrete("Model") +
+  scale_y_continuous("Metric Score") +
+  scale_colour_manual("Metric",
+                      values = c(average_colours, "Min_score" = "darkcyan", "Max_score" = "darkblue"),
+                      labels = c("Max_score" = "Max Score",
+                                 "Min_score" = "Min Score",
+                                 "Macro" = "Macro",
+                                 "Micro" = "Micro"))+
+  facet_wrap(~metric) +
+  report_theme(12)
+
+```
+
+
+### The Top Models {.tabset}
+
+```{r}
+
+confusion_top <- confusion |> 
+  filter(model_id %in% top_ids)
+
+conf_long_top <- conf_long |> 
+  filter(model_id %in% top_ids)
+
+conf_wide_top <- conf_wide |>
+  filter(model_id %in% top_ids)
+
+conf_metrics_top <- conf_metrics |> 
+  filter(model_id %in% top_ids)
+
+```
+
+```{r, cache=T}
+## contains recall, precision and F1 - with the max and min, with Macro and Micro values.
+recall_precision_df <- conf_metrics_top |> 
+  filter(metric %in% c("precision", "recall", "f1_score")) |> 
+  mutate(metric = str_remove(metric, "_score")) |> 
+  ## summarise across the folds
+  summarise(.by = c(model_code, model_id, group, metric), 
+            mean_score = mean(score, na.rm = T)) |> 
+  ## get the best and worst score for a group - for each model
+  summarise(.by = c(model_code, model_id, metric),
+            max_score = max(mean_score, na.rm = T),
+            min_score = min(mean_score, na.rm = T)) |>
+  left_join(metrics_wide, by = c("model_code", "model_id", "metric" = "metric_type")) |> 
+  filter(if_any(c(macro, micro, weighted),  ~ !is.na(.))) |> 
+  select(-weighted) |>
+  mutate(metric = str_to_title(metric)) |> 
+  pivot_longer(cols = c(max_score, min_score, macro, micro), 
+               names_to = "mode", 
+               values_to = "value")
+
+## just the F1 scores.
+f1_score_df <- recall_precision_df |> 
+  filter(metric %in% "F1")
+
+## showing all the classes
+class_df <- conf_metrics_top |> 
+  filter(metric %in% c("precision", "recall", "f1_score")) |> 
+  mutate(metric = str_remove(metric, "_score")) |> 
+  ## summarise across the folds
+  summarise(.by = c(model_code, model_id, group, metric), 
+            mean_score = mean(score, na.rm = T)) |> 
+  pivot_wider(id_cols = c(model_id, model_code, metric), names_from = group, values_from = mean_score) |> 
+  left_join(metrics_wide, by = c("model_code", "model_id", "metric" = "metric_type")) |> 
+  filter(if_any(c(CS:weighted),  ~ !is.na(.))) |> 
+  select(-weighted) |>
+  mutate(metric = str_to_title(metric)) |> 
+  pivot_longer(cols = c(HV:micro), 
+               names_to = "mode", 
+               values_to = "value") |> 
+  mutate(mode = if_else(mode %in% c("micro", "macro"), str_to_title(mode), mode))
+```
+
+#### Confusion Matrix Values for Each Model
+
+```{r}
+
+.conf_mat_top_1 <- conf_wide_top |> 
+  select(id, model_code, model_id, group, tpr, fpr, tnr, fnr) |> 
+  pivot_longer(cols = c(tpr, fpr, fnr, tnr), names_to = "metric", values_to = "value") |> 
+  mutate(metric = str_to_upper(metric)) |> 
+  ggplot(aes(x = model_code, y = value, colour = group))+
+  stat_summary(geom = "pointrange", 
+             fun = "median",
+             fun.min = "min", 
+             fun.max = "max",
+             position = position_dodge(.5), 
+             size = 1, 
+             shape = 15, 
+             linewidth = 1, 
+             fun.args = list(na.rm = T)) +
+  scale_y_continuous("Count") +
+  scale_x_discrete("Model") +
+  ggtitle("Class-Specific Values from Confusion Matrix") +
+  scale_colour_manual("Subtype", values = subtype_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 2, alpha = 1))) +
+  facet_wrap(~metric, nrow = 2, scales = "free_y") +
+  report_theme(14)
+
+.conf_mat_top_1
+
+```
+
+
+#### Precision and Recall
+
+```{r, cache=T}
+.conf_mat_top_2 <- recall_precision_df |> 
+  filter(mode != "mean_score") |>
+  filter(metric %in% c("Precision", "Recall", "F1")) |> 
+  mutate(mode = str_to_title(mode)) |> 
+  ggplot(aes(x = reorder(model_code, value), y = value, colour = mode, group = mode)) +
+  stat_summary(geom = "line", 
+               fun = mean,
+               linewidth = 1.5) +
+  ggtitle("Comparision of Macro- and Micro-Averaging against Min and Max") +
+  scale_x_discrete("Model") +
+  scale_y_continuous("Metric Score") +
+  scale_colour_manual("Metric",
+                      values = c(average_colours, "Min_score" = "darkcyan", "Max_score" = "darkblue"),
+                      labels = c("Max_score" = "Max",
+                                 "Min_score" = "Min",
+                                 "Macro" = "Macro",
+                                 "Micro" = "Micro"))+
+  facet_wrap(~factor(metric, levels = c("Precision", "Recall", "F1"))) +
+  report_theme(14)
+
+.conf_mat_top_2
+```
+
+```{r}
+.conf_mat_top_2b <- recall_precision_df |> 
+  filter(mode != "mean_score") |>
+  filter(metric %in% c("Precision", "Recall", "F1")) |> 
+  mutate(mode = str_to_title(mode)) |> 
+  ggplot(aes(x = reorder(model_code, value), y = value, colour = mode, group = mode)) +
+  stat_summary(geom = "pointrange", 
+               fun = mean,
+               fun.min = function(x) mean(x) - sd(x),
+               fun.max = function(x) mean(x) + sd(x),
+               size = 1, 
+               shape = 15, 
+               linewidth = 1) +
+  ggtitle("Comparision of Macro- and Micro-Averaging against Min and Max") +
+  scale_x_discrete("Model") +
+  scale_y_continuous("Mean Score") +
+  scale_colour_manual("Metric",
+                      values = c(average_colours, "Min_score" = "darkcyan", "Max_score" = "darkblue"),
+                      labels = c("Max_score" = "Max",
+                                 "Min_score" = "Min",
+                                 "Macro" = "Macro",
+                                 "Micro" = "Micro"))+
+  facet_wrap(~factor(metric, levels = c("Precision", "Recall", "F1"))) +
+  report_theme(14)
+
+.conf_mat_top_2b
+```
+
+```{r}
+.conf_mat_top_2c <- ggplot(
+  mapping = aes(x = reorder(model_code, value), 
+                y = value, 
+                colour = factor(mode, levels = c("Micro", "Macro", "HV", "PHT", "PPGL", "PA", "CS")), 
+                group = mode)) +
+  stat_summary(data = class_df |> filter(!mode %in% c("PA", "CS", "HV", "PHT", "PPGL")),
+               geom = "line", 
+               fun = median,
+               linewidth = 2) +
+  stat_summary(data = class_df |> filter(mode %in% c("PA", "CS", "HV", "PHT", "PPGL")),
+               geom = "line", 
+               fun = median, 
+               linewidth = 1.2, 
+               linetype = 2,
+               alpha = .5) +
+  stat_summary(data = class_df |> filter(mode %in% c("PA", "CS", "HV", "PHT", "PPGL")),
+               geom = "point", 
+               fun = median, 
+               shape = 15, 
+               size = 4)+
+  ggtitle("Comparision of Macro- and Micro-Averaging against Each Class") +
+  scale_x_discrete("Model") +
+  scale_y_continuous("Median Score") +
+  scale_colour_manual("Metric or Subtype",
+                      values = c(subtype_colours, "Macro" = "#80A4ED", "Micro" = "#7CA982"), 
+                      guide = guide_legend(override.aes = list(linewidth = 2, alpha = 1, shape = 15, size = 3.5)))+
+  scale_fill_manual(values = c(subtype_colours))+
+  guides(fill = "none") +
+  facet_wrap(~factor(metric, levels = c("Precision", "Recall", "F1"))) +
+  report_theme(14) 
+
+.conf_mat_top_2c
+```
+
+
+
+#### F1-Score
+
+```{r}
+
+.conf_mat_top_3 <- f1_score_df |>
+  mutate(mode = str_to_title(mode)) |> 
+  ggplot(aes(x = model_code,  y = value, colour = mode, group = mode)) +
+  stat_summary(geom = "line", 
+               fun = median, 
+               linewidth = 2) +
+  ggtitle("Comparision of Macro- and Micro-Averaging against Min and Max") +
+  scale_x_discrete("Model") +
+  scale_y_continuous("Metric Score") +
+  scale_colour_manual("Metric",
+                      values = c(average_colours, "Min_score" = "darkcyan", "Max_score" = "darkblue"),
+                      labels = c("Max_score" = "Max",
+                                 "Min_score" = "Min",
+                                 "Macro" = "Macro",
+                                 "Micro" = "Micro"))+
+  facet_wrap(~metric) +
+  report_theme(12)
+
+.conf_mat_top_3
+```
+
+```{r}
+## comparing the TPR, TNR, FPR and FNR for the best models - defined by the different metrics
+.tmp_best_metrics <- best_metrics |>
+  filter(!grepl('micro|weighted', metric)) |> 
+  rename(best_metric = metric)
+
+best_conf_df <- conf_wide |> 
+  filter(!model_code %in% c("GNB", "LSVM", "KNN", "ERF")) |> 
+  summarise(.by = c(model_code, model_id, group), 
+            across(tp:fomr, ~ mean(., na.rm = T))) |> 
+  select(-tp:-neg) |> 
+  select(model_code:tnr) |> 
+  inner_join(.tmp_best_metrics, by = c("model_id", "model_code")) |>
+  mutate(best_metric = str_replace_all(best_metric, "_", " ") |> str_to_title())
+```
+
+### Top Model Confusion Matrix Differences {.tabset}
+
+#### Difference in TPR Across Top Four Models
+
+```{r}
+.conf_mat_top_4 <- best_conf_df |> 
+  summarise(.by = c(model_code, model_id, group, best_metric), 
+            across(c(tpr:tnr, mean_score), 
+                   mean)
+            ) |> 
+  ggplot(aes(x = best_metric, y = tpr, colour = group, group = group)) +
+  stat_summary(geom = "point", 
+             fun = "mean",
+             size = 4, 
+             shape = 15, 
+             fun.args = list(na.rm = T))+
+  stat_summary(geom = "line", 
+             fun = "mean",
+             linewidth = 1, 
+             linetype = 2,
+             alpha = .5, 
+             fun.args = list(na.rm = T), show.legend = F)+
+  facet_wrap(~model_code) +
+  ggtitle("Subtype's TPR across Selected Models")+
+  scale_x_discrete("Choosen Metric For Model Selection") +
+  scale_y_continuous("True Positive Rate (TPR)") +
+  scale_colour_manual("Subtype", values = subtype_colours, 
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+.conf_mat_top_4
+```
+
+#### Performance of GB Across Four Metrics
+
+```{r}
+.conf_mat_top_5 <- best_conf_df |> 
+  filter(model_code == "GB") |> 
+  summarise(.by = c(model_code, model_id, group, best_metric), 
+            across(c(tpr:tnr, mean_score), 
+                   mean)
+            ) |> 
+  pivot_longer(cols = tpr:tnr, names_to = "metric", values_to = "value") |> 
+  select(-mean_score) |> 
+  mutate(metric = str_to_upper(metric)) |> 
+  ggplot(aes(x = best_metric, y = value, colour = metric, group = metric)) +
+  stat_summary(geom = "point", 
+             fun = "mean",
+             size = 4, 
+             shape = 15, 
+             fun.args = list(na.rm = T))+
+  stat_summary(geom = "line", 
+             fun = "mean",
+             linewidth = 1, 
+             shape = 15, 
+             fun.args = list(na.rm = T), show.legend = F)+
+  facet_wrap(~group) +
+  scale_x_discrete("Selected Metric") +
+  scale_y_continuous("True Positive Rate (TPR)") +
+  scale_colour_manual("Metric",
+                      values = c("TPR" = "darkcyan", "TNR" = "darkblue", "FPR" = "darkred", "FNR" = "darkmagenta"),
+                      guide = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  report_theme(12, axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+.conf_mat_top_5
+```
+
+#### Difference in Performance Across Top Four Models - Across the Four Metrics
+
+```{r}
+.conf_mat_top_6 <- best_conf_df |> 
+  summarise(.by = c(model_code, model_id, group, best_metric), 
+            across(c(tpr:tnr, mean_score), 
+                   mean)
+            ) |> 
+  pivot_longer(cols = tpr:tnr, names_to = "metric", values_to = "value") |> 
+  select(-mean_score) |> 
+  mutate(metric = str_to_upper(metric)) |> 
+  ggplot(aes(x = best_metric, y = value, colour = group, group = group)) +
+  stat_summary(geom = "point", 
+             fun = "mean",
+             size = 4, 
+             shape = 15, 
+             fun.args = list(na.rm = T))+
+  stat_summary(geom = "line", 
+             fun = "mean", 
+             linewidth = 1, 
+             alpha = .5, 
+             fun.args = list(na.rm = T), 
+             show.legend = F)+
+  ggtitle("Class-Specific Metrics from Confusion Matrix")+
+  facet_grid(cols = vars(metric), rows = vars(model_code)) +
+  scale_x_discrete("Choosen Metric For Model Selection") +
+  scale_y_continuous("Metric Score")+
+  scale_colour_manual("Subtype", values = subtype_colours) +
+  report_theme(12, axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) 
+
+.conf_mat_top_6
+```
+
+```{r, eval = F}
+
+walk2(
+  .x = list(.conf_mat_top_1, .conf_mat_top_2, .conf_mat_top_2b, .conf_mat_top_2c,
+            .conf_mat_top_3, .conf_mat_top_4, .conf_mat_top_5, .conf_mat_top_6), 
+  .y = c("Confusion_Matrix", "Prec_Recall_Min_Max", "Prec_Recall_Min_Max_Range", "Prec_Recall_Classes", "F1_Min_Max", 
+         "Best_Conf_Differences_Models", "Best_Conf_Differences_GB_1", "Best_Conf_Differences_Grid"), 
+  .f = ~ save_graph(.x, .y, width = 10, height = 8)
+)
+
+```
+
+
+
+

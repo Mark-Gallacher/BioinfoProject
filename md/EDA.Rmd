@@ -30,6 +30,12 @@ long_data <- data |>
 
 ```{r}
 data |> 
+  count(DiseaseSubtypeFull)
+```
+
+
+```{r}
+data |> 
   ggplot(aes(x = DiseaseSubtype, fill = DiseaseSubtypeFull))+
   geom_histogram()
 ```

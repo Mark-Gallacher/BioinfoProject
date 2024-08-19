@@ -1,6 +1,10 @@
 {
     "sortOrder": [
         {
+            "columnIndex": 4,
+            "ascending": false
+        },
+        {
             "columnIndex": 3,
             "ascending": false
         },
@@ -9,5 +13,5 @@
             "ascending": true
         }
     ],
-    "path": "D:/Documents/University/Bioinformatics/project/r"
+    "path": "D:/Documents/University/Bioinformatics/project/md"
 }
