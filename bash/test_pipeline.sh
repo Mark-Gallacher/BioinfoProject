@@ -64,7 +64,7 @@ fi
 
 cd ${py_script_home}
 
-python3 "test_pipeline.py" --mode "${MODE}" \
+python3 "pipeline_dummy_run.py" --mode "${MODE}" \
     && echo -e "Python Script appears to ran without errors\n" \
     || echo -e "Python Script appears to have ran into errors!!\n"
 
