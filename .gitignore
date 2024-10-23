@@ -3,5 +3,9 @@
 .Rhistory
 .RData
 .Ruserdata
+.pytest_cache
 proj_env/
 mars_output/
+md/figures
+md/cache
+
