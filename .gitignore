@@ -8,4 +8,8 @@ proj_env/
 mars_output/
 md/figures
 md/cache
+data/TidyData.csv
+data/MetaData.csv
+data/SubTypeData.csv
+data/DataForBioinfMScStudent-FakeIDs.csv
 
